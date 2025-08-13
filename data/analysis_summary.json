@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-08-13T11:02:18.155372",
+  "ticker": "PG",
+  "data_points": 2475,
+  "latest_signal": {
+    "date": "2025-08-12",
+    "signal": "HOLD",
+    "position": "LONG",
+    "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
+    "phase_value": -2.004577134045108,
+    "oscillator_value": -3.5862075000000004,
+    "signal_strength": 69.27087880605056,
+    "confidence": "MEDIUM",
+    "price": 155.09,
+    "timestamp": "2025-08-13T11:02:16.697686"
+  },
+  "backtest_metrics": {
+    "total_return_%": 111.81898575547469,
+    "max_drawdown_%": 6.899206577322216,
+    "sharpe_ratio": 2.450813204126032,
+    "sortino_ratio": 2.505184427066549,
+    "calmar_ratio": 3.7781797208792014,
+    "total_trades": 14,
+    "win_rate_%": 92.85714285714286,
+    "profit_factor": 64.63818746726064
+  },
+  "cycle_analysis": {
+    "dominant_period": 84.0,
+    "p_value": 0.0,
+    "significant": "True"
+  }
+}
