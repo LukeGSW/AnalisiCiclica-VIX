@@ -81,7 +81,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def run_analysis(lookback_years=5):
+def run_analysis(lookback_years=10):
     """Run the complete analysis pipeline with custom lookback"""
     try:
         with st.spinner(f'🔄 Running analysis with {lookback_years} years lookback... This may take 1-2 minutes'):
@@ -91,7 +91,7 @@ def run_analysis(lookback_years=5):
             
             # Calculate dates
             end_date = datetime.now().strftime('%Y-%m-%d')
-            start_date = (datetime.now() - timedelta(days=lookback_years*365)).strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=lookback_years*365.25)).strftime('%Y-%m-%d')
             
             # Step 1: Fetch data
             status_text.text(f'📡 Fetching {lookback_years} years of data for {Config.TICKER}...')
@@ -103,7 +103,7 @@ def run_analysis(lookback_years=5):
                 start_date=start_date,
                 end_date=end_date
             )
-            fetcher.save_data(df)
+            fetcher.save_data(df, filename=Config.HISTORICAL_DATA_FILE)
             
             # Step 2: Cycle analysis
             status_text.text('🔄 Performing cycle analysis...')
@@ -145,8 +145,8 @@ def run_analysis(lookback_years=5):
                 'lookback_years': lookback_years,
                 'data_points': len(df_signals),
                 'date_range': {
-                    'start': start_date,
-                    'end': end_date
+                    'start': df_signals.index[0].strftime('%Y-%m-%d'),
+                    'end': df_signals.index[-1].strftime('%Y-%m-%d')
                 },
                 'latest_signal': latest_signal,
                 'cycle_analysis': {
@@ -294,37 +294,35 @@ def create_price_chart(df):
     
     return fig
 
-def create_equity_chart(df):
-    """Create equity curve chart"""
-    df = df.copy()
-    df['returns'] = df['close'].pct_change()
-    df['strategy_returns'] = df['position'].shift(1) * df['returns']
-    df['cumulative_strategy'] = (1 + df['strategy_returns']).cumprod()
-    df['cumulative_buy_hold'] = (1 + df['returns']).cumprod()
-    
-    initial_capital = float(Config.INITIAL_CAPITAL)
-    df['equity'] = df['cumulative_strategy'] * initial_capital
-    df['buy_hold_equity'] = df['cumulative_buy_hold'] * initial_capital
-    
+def create_equity_chart(df_results: pd.DataFrame):
+    """
+    Crea il grafico della curva di equity dai risultati del backtest.
+    Questa funzione ora si occupa solo della VISUALIZZAZIONE.
+    df_results: Il DataFrame 'results' restituito dal Backtester.
+    """
     fig = go.Figure()
     
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['equity'],
-            name='Strategy',
-            line=dict(color='blue', width=2)
+    # Grafico dell'equity della strategia (calcolata dal backtester)
+    if 'equity' in df_results.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_results.index,
+                y=df_results['equity'],
+                name='Strategy',
+                line=dict(color='blue', width=2)
+            )
         )
-    )
     
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['buy_hold_equity'],
-            name='Buy & Hold',
-            line=dict(color='gray', width=1, dash='dash')
+    # Grafico dell'equity del benchmark (Buy & Hold)
+    if 'benchmark_equity' in df_results.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_results.index,
+                y=df_results['benchmark_equity'],
+                name='Buy & Hold',
+                line=dict(color='gray', width=1, dash='dash')
+            )
         )
-    )
     
     fig.update_layout(
         title='Equity Curve Comparison',
@@ -377,8 +375,8 @@ def main():
             initial_lookback = st.slider(
                 "Select lookback period (years)",
                 min_value=1,
-                max_value=10,
-                value=5,
+                max_value=20,
+                value=10,
                 step=1
             )
             
@@ -402,13 +400,14 @@ def main():
         st.header("⚙️ Configuration")
         
         # Display current configuration
-        current_lookback = data.get('summary', {}).get('lookback_years', 10)
-        date_range = data.get('summary', {}).get('date_range', {})
+        summary = data.get('summary', {})
+        current_lookback = summary.get('lookback_years', 10)
+        date_range_info = summary.get('date_range', {})
         
         st.info(f"""
         **Ticker:** {Config.TICKER}  
         **Current Lookback:** {current_lookback} years  
-        **Data Range:** {date_range.get('start', 'N/A')} to {date_range.get('end', 'N/A')}  
+        **Data Range:** {date_range_info.get('start', 'N/A')} to {date_range_info.get('end', 'N/A')}  
         **Fast MA:** {Config.FAST_MA_WINDOW}  
         **Slow MA:** {Config.SLOW_MA_WINDOW}  
         **Initial Capital:** ${float(Config.INITIAL_CAPITAL):,.0f}  
@@ -431,7 +430,7 @@ def main():
         
         # Show what date range this would be
         if new_lookback != current_lookback:
-            new_start = (datetime.now() - timedelta(days=new_lookback*365)).strftime('%Y-%m-%d')
+            new_start = (datetime.now() - timedelta(days=new_lookback*365.25)).strftime('%Y-%m-%d')
             new_end = datetime.now().strftime('%Y-%m-%d')
             st.caption(f"This will analyze data from {new_start} to {new_end}")
         
@@ -445,10 +444,10 @@ def main():
                 st.error(message)
         
         # Cycle analysis info
-        if 'summary' in data and 'cycle_analysis' in data['summary']:
+        if 'cycle_analysis' in summary:
             st.markdown("---")
             st.markdown("### 📊 Cycle Analysis")
-            cycle_info = data['summary']['cycle_analysis']
+            cycle_info = summary['cycle_analysis']
             
             if cycle_info.get('dominant_period'):
                 st.metric(
@@ -471,10 +470,11 @@ def main():
             "Select date range",
             value=(df_signals.index[0], df_signals.index[-1]),
             min_value=df_signals.index[0],
-            max_value=df_signals.index[-1]
+            max_value=df_signals.index[-1],
+            key="date_filter_widget"
         )
-        
-        # Filter data
+            
+        # Filtra i dati in base all'intervallo selezionato nel widget
         if len(date_range) == 2:
             mask = (df_signals.index >= pd.Timestamp(date_range[0])) & (df_signals.index <= pd.Timestamp(date_range[1]))
             df_filtered = df_signals.loc[mask]
@@ -584,50 +584,64 @@ def main():
                 st.metric("Sell Signals", sell_signals)
     
     with tab3:
+        # ======================================================================
+        # SEZIONE MODIFICATA: Logica di backtest e visualizzazione corretta
+        # ======================================================================
         st.header("Backtest Results")
-        
-        # Equity curve
+
+        # --- Equity Curve per l'intervallo selezionato ---
         st.subheader("💰 Equity Curve")
-        fig_equity = create_equity_chart(df_filtered)
-        st.plotly_chart(fig_equity, use_container_width=True)
+        backtester = Backtester()
+        # Eseguiamo un backtest semplice solo per la visualizzazione sull'intervallo scelto
+        backtest_visual_output = backtester.run_backtest(df_filtered)
+        results_visual_df = backtest_visual_output.get('results')
         
-        # Performance metrics
-        if 'backtest' in data:
-            st.subheader("📊 Performance Metrics")
+        if results_visual_df is not None:
+            fig_equity = create_equity_chart(results_visual_df)
+            st.plotly_chart(fig_equity, use_container_width=True)
+        else:
+            st.warning("Could not generate equity curve for the selected range.")
+
+        # --- Metriche dal Walk-Forward Analysis (più robuste) ---
+        st.subheader("📊 Performance Metrics (Walk-Forward Analysis)")
+        backtest_data = data.get('backtest', {})
+        
+        # Controlla se abbiamo i risultati del Walk-Forward
+        if 'in_sample_metrics' in backtest_data and 'out_of_sample_metrics' in backtest_data:
+            is_metrics = backtest_data['in_sample_metrics']
+            oos_metrics = backtest_data['out_of_sample_metrics']
             
             col1, col2 = st.columns(2)
             
-            # Check if we have IS/OOS results
-            if 'in_sample_metrics' in data['backtest']:
-                with col1:
-                    st.markdown("**In-Sample Performance**")
-                    is_metrics = data['backtest']['in_sample_metrics']
-                    for key, value in is_metrics.items():
-                        if isinstance(value, (int, float)):
-                            st.metric(key.replace('_', ' ').title().replace('%', ''), f"{float(value):.2f}")
-                
-                with col2:
-                    st.markdown("**Out-of-Sample Performance**")
-                    oos_metrics = data['backtest']['out_of_sample_metrics']
-                    for key, value in oos_metrics.items():
-                        if isinstance(value, (int, float)):
-                            st.metric(key.replace('_', ' ').title().replace('%', ''), f"{float(value):.2f}")
-            else:
-                # Single backtest results
-                metrics = data['backtest'].get('metrics', {})
-                
-                with col1:
-                    st.metric("Total Return", f"{float(metrics.get('total_return_%', 0)):.2f}%")
-                    st.metric("Max Drawdown", f"{float(metrics.get('max_drawdown_%', 0)):.2f}%")
-                    st.metric("Sharpe Ratio", f"{float(metrics.get('sharpe_ratio', 0)):.2f}")
-                    st.metric("Calmar Ratio", f"{float(metrics.get('calmar_ratio', 0)):.2f}")
-                
-                with col2:
-                    st.metric("Total Trades", f"{int(metrics.get('total_trades', 0)):.0f}")
-                    st.metric("Win Rate", f"{float(metrics.get('win_rate_%', 0)):.1f}%")
-                    st.metric("Profit Factor", f"{float(metrics.get('profit_factor', 0)):.2f}")
-                    st.metric("Sortino Ratio", f"{float(metrics.get('sortino_ratio', 0)):.2f}")
-    
+            with col1:
+                st.markdown("**In-Sample Performance**")
+                for key, value in is_metrics.items():
+                    st.metric(
+                        label=key.replace('_', ' ').title().replace('%', ''),
+                        value=f"{float(value):.2f}{'%' if '%' in key else ''}"
+                    )
+            
+            with col2:
+                st.markdown("**Out-of-Sample Performance**")
+                for key, value in oos_metrics.items():
+                     st.metric(
+                        label=key.replace('_', ' ').title().replace('%', ''),
+                        value=f"{float(value):.2f}{'%' if '%' in key else ''}"
+                    )
+        else:
+            # Fallback: mostra le metriche del backtest semplice se il WFA non è disponibile
+            st.markdown("*(Displaying simple backtest metrics as Walk-Forward results are not available)*")
+            metrics = backtest_visual_output.get('metrics', {})
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total Return", f"{metrics.get('total_return_%', 0):.2f}%")
+                st.metric("Max Drawdown", f"{metrics.get('max_drawdown_%', 0):.2f}%")
+                st.metric("Sharpe Ratio", f"{metrics.get('sharpe_ratio', 0):.2f}")
+            with col2:
+                st.metric("Total Trades", f"{int(metrics.get('total_trades', 0)):.0f}")
+                st.metric("Win Rate", f"{metrics.get('win_rate_%', 0):.1f}%")
+                st.metric("Profit Factor", f"{metrics.get('profit_factor', 0):.2f}")
+
     with tab4:
         st.header("Trading History")
         
