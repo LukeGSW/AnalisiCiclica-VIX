@@ -1,4 +1,4 @@
- """
+"""
 Main analysis script for Kriterion Quant Trading System
 Orchestrates data fetching, cycle analysis, signal generation, and notifications
 """
