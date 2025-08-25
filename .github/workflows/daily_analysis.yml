@@ -1,3 +1,5 @@
+# .github/workflows/daily_analysis.yml (Riscritto)
+
 name: Daily Trading Analysis
 
 on:
@@ -11,14 +13,13 @@ on:
       ticker:
         description: 'Stock ticker to analyze'
         required: false
-        default: 'PG'
+        # --- MODIFICA 1: Ticker di default aggiornato a ^VIX ---
+        default: '^VIX'
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
     
-    # --- MODIFICA CHIAVE: AGGIUNTO BLOCCO PERMESSI ---
-    # Questo concede al GITHUB_TOKEN i permessi per scrivere nel repository.
     permissions:
       contents: write
       
@@ -49,28 +50,29 @@ jobs:
     
     - name: Run analysis
       env:
-        EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        # --- MODIFICA 2: Rimosso EODHD_API_KEY, non più necessario ---
+        # EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        TICKER: ${{ github.event.inputs.ticker || 'PG' }}
+        # --- MODIFICA 3: Ticker di fallback aggiornato a ^VIX ---
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       run: |
         python main_analysis.py
     
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 1 >>>                    #
-    # ================================================================= #
     - name: Commit and push results
       env:
-        # Rendiamo il ticker disponibile anche in questo step
-        TICKER: ${{ github.event.inputs.ticker || 'PG' }}
+        # --- MODIFICA 4: Ticker di fallback aggiornato a ^VIX ---
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # Aggiungiamo al commit la cartella specifica del ticker (es. data/PG/)
-        git add data/${{ env.TICKER }}/
+        # Aggiungiamo al commit la cartella specifica del ticker
+        # NOTA: GitHub Actions potrebbe avere problemi con caratteri speciali come '^'.
+        # Se il commit fallisce, potrebbe essere necessario mappare '^VIX' a 'VIX' come nome di cartella.
+        # Per ora, lasciamo così che è più diretto.
+        git add data/"${{ env.TICKER }}"/
         
-        # Aggiungiamo il ticker al messaggio di commit per maggiore chiarezza
         if ! git diff-index --quiet HEAD --; then
           git commit -m "Update analysis results for ${{ env.TICKER }} - $(date -u +'%Y-%m-%d %H:%M')"
           git push
@@ -78,19 +80,14 @@ jobs:
           echo "No changes to commit for ${{ env.TICKER }}."
         fi
     
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 2 >>>                    #
-    # ================================================================= #
     - name: Upload artifacts
-      if: always() # Esegui sempre, anche se il push non avviene
+      if: always()
       uses: actions/upload-artifact@v4
       env:
-        # Rendiamo il ticker disponibile anche in questo step
-        TICKER: ${{ github.event.inputs.ticker || 'PG' }}
+        # --- MODIFICA 5: Ticker di fallback aggiornato a ^VIX ---
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       with:
-        # Rendiamo il nome dell'artefatto specifico per il ticker
         name: analysis-results-${{ env.TICKER }}
-        # Aggiorniamo tutti i percorsi per puntare alla sottocartella
         path: |
           data/${{ env.TICKER }}/signals.csv
           data/${{ env.TICKER }}/signals_latest.json
