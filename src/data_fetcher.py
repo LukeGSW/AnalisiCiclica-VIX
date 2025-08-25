@@ -24,7 +24,6 @@ class DataFetcher:
         data_path : str
             The path to the directory where data should be saved/loaded.
         """
-        # API key non è più necessaria con Yahoo Finance
         self.data_path = data_path
 
     def fetch_historical_data(
@@ -36,22 +35,6 @@ class DataFetcher:
     ) -> pd.DataFrame:
         """
         Fetch historical OHLC data from Yahoo Finance.
-
-        Parameters
-        ----------
-        ticker : str, optional
-            Stock ticker symbol. Defaults to Config.TICKER.
-        start_date : str, optional
-            Start date in 'YYYY-MM-DD' format. Defaults to Config.START_DATE.
-        end_date : str, optional
-            End date in 'YYYY-MM-DD' format. Defaults to Config.END_DATE.
-        max_retries : int, optional
-            Maximum number of retry attempts for network issues.
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with OHLC data and volume.
         """
         ticker = ticker or Config.TICKER
         start_date = start_date or Config.START_DATE
@@ -64,35 +47,25 @@ class DataFetcher:
         
         while retries < max_retries:
             try:
-                # Usa yfinance per scaricare i dati
                 df = yf.download(ticker, start=start_date, end=end_date, progress=False)
 
                 if df.empty:
                     raise ValueError(f"No data returned for {ticker}. It might be delisted or the ticker is incorrect.")
                 
-                # Gestisce il caso in cui yfinance restituisca un MultiIndex nelle colonne
                 if isinstance(df.columns, pd.MultiIndex):
-                    # Appiattiamo le colonne prendendo solo il primo livello (es. 'Open', 'Close')
                     df.columns = df.columns.get_level_values(0)
 
-                # Ora possiamo processare le colonne in sicurezza
                 df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
                 
-                # Per gli indici come il VIX, 'adj_close' è uguale a 'close'.
-                # Per mantenere la compatibilità, ci assicuriamo che la colonna 'close' sia quella di riferimento.
                 if 'adj_close' in df.columns:
                     df.rename(columns={'adj_close': 'close'}, inplace=True)
 
-                # Seleziona e valida le colonne richieste dal sistema
                 required_cols = ['open', 'high', 'low', 'close', 'volume']
                 
-                # Controlla che tutte le colonne necessarie esistano dopo la pulizia
                 if not all(col in df.columns for col in required_cols):
                     raise ValueError(f"Missing required columns after download for {ticker}")
                 
                 df = df[required_cols]
-                
-                # Rimuovi eventuali righe con dati mancanti
                 df.dropna(inplace=True)
                 
                 print(f"✅ Successfully fetched {len(df)} days of data")
@@ -115,6 +88,8 @@ class DataFetcher:
         filename = 'historical_data.csv'
         filepath = os.path.join(self.data_path, filename)
         
+        # Assicura che l'indice si chiami 'date' prima di salvare
+        df.index.name = 'date'
         df.to_csv(filepath)
         print(f"💾 Data saved to {filepath}")
         return filepath
@@ -129,8 +104,13 @@ class DataFetcher:
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Data file not found: {filepath}")
         
-        df = pd.read_csv(filepath, index_col='Date', parse_dates=True) # yfinance usa 'Date' come index name
-        df.index.name = 'date' # Standardizziamo il nome dell'indice
+        # ================================================================= #
+        #                      <<< CORREZIONE QUI >>>                       #
+        # ================================================================= #
+        # Ora legge correttamente la colonna 'date' con la 'd' minuscola
+        df = pd.read_csv(filepath, index_col='date', parse_dates=True)
+        # ================================================================= #
+        
         print(f"📂 Loaded {len(df)} days of data from {filepath}")
         return df
 
@@ -145,22 +125,23 @@ class DataFetcher:
             last_date = existing_df.index[-1].strftime('%Y-%m-%d')
             print(f"📅 Last data point: {last_date}")
             
-            # Fetch only new data
             new_df = self.fetch_historical_data(
                 ticker=ticker,
                 start_date=last_date,
                 end_date=Config.END_DATE
             )
             
-            # Combine and remove duplicates
-            combined_df = pd.concat([existing_df, new_df])
-            combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
-            combined_df.sort_index(inplace=True)
+            if not new_df.empty:
+                combined_df = pd.concat([existing_df, new_df])
+                combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
+                combined_df.sort_index(inplace=True)
+            else:
+                print("No new data to combine.")
+                combined_df = existing_df
         
         except FileNotFoundError:
             print("📥 No existing data found. Fetching full history...")
             combined_df = self.fetch_historical_data(ticker=ticker)
         
-        # Save updated data
         self.save_data(combined_df)
         return combined_df
