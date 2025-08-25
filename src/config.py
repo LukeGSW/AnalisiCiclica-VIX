@@ -1,3 +1,5 @@
+# src/config.py
+
 """
 Configuration module for Kriterion Quant Trading System
 Central configuration for all system parameters
@@ -18,8 +20,8 @@ def get_ticker():
     if env_ticker:
         return env_ticker.upper()
     
-    # Default - CHANGE THIS TO YOUR DESIRED TICKER
-    return 'PG'  # ← CAMBIA QUESTO CON IL TUO TICKER
+    # Default - VIX Index
+    return '^VIX'
 
 class Config:
     """Central configuration class for the trading system"""
@@ -27,44 +29,38 @@ class Config:
     # Set the ticker using the helper function
     TICKER = get_ticker()
     
+    # --- EODHD API KEY RIMOSSA ---
+    # EODHD_API_KEY = os.getenv('EODHD_API_KEY')
+    
     # API Keys and Tokens (from environment variables)
-    EODHD_API_KEY = os.getenv('EODHD_API_KEY')
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')  # Optional
     
-    # Trading Parameters
-    EXCHANGE = 'US'  # Default exchange
+    # --- EXCHANGE RIMOSSO (specifico di EODHD) ---
+    # EXCHANGE = 'US'
     
     # Analysis Parameters (matching the notebook)
-    FAST_MA_WINDOW = 10  # Fast moving average for causal oscillator
-    SLOW_MA_WINDOW = 40  # Slow moving average for causal oscillator
+    FAST_MA_WINDOW = 10
+    SLOW_MA_WINDOW = 40
     
     # Spectral Analysis Parameters
-    NPERSEG = 252  # Segment length for Welch periodogram (1 trading year)
-    CWT_SCALES = list(range(2, 127))  # Scales for CWT analysis
-    MONTE_CARLO_SIMULATIONS = 500  # Number of Monte Carlo simulations
+    NPERSEG = 252
+    CWT_SCALES = list(range(2, 127))
+    MONTE_CARLO_SIMULATIONS = 500
     
     # Backtest Parameters
     INITIAL_CAPITAL = float(os.getenv('INITIAL_CAPITAL', 10000.0))
-    TRADING_FEES = float(os.getenv('TRADING_FEES', 0.001))  # 0.1% per trade
-    IN_SAMPLE_RATIO = 0.7  # 70% for in-sample, 30% for out-of-sample
+    TRADING_FEES = float(os.getenv('TRADING_FEES', 0.001))
+    IN_SAMPLE_RATIO = 0.7
     
-    # ======================================================================
-    # Data Parameters (CORRETTO)
-    
-    # Definisci il lookback desiderato in anni.
+    # Data Parameters
     LOOKBACK_YEARS = 10
-    
-    # Calcola correttamente la data di inizio sottraendo anni di calendario.
-    # Moltiplichiamo per 365.25 per tenere conto degli anni bisestili.
     END_DATE = datetime.now().strftime('%Y-%m-%d')
     START_DATE = (datetime.now() - timedelta(days=LOOKBACK_YEARS * 365.25)).strftime('%Y-%m-%d')
     
-    # Variabile deprecata, la lasciamo per compatibilità ma non è più il driver principale
+    # Deprecated variable
     LOOKBACK_DAYS = LOOKBACK_YEARS * 252
-    
-    # ======================================================================
     
     # File Paths
     DATA_DIR = 'data'
@@ -72,7 +68,7 @@ class Config:
     HISTORICAL_DATA_FILE = os.path.join(DATA_DIR, 'historical_data.csv')
     BACKTEST_RESULTS_FILE = os.path.join(DATA_DIR, 'backtest_results.json')
     
-    # Trading Rules (based on cycle phases)
+    # Trading Rules
     BULLISH_QUADRANTS = [
         "Quadrante 1 (Minimo -> Salita)",
         "Quadrante 2 (Salita -> Picco)"
@@ -91,11 +87,9 @@ class Config:
         """Validate that all required configuration is present"""
         errors = []
         
-        # EODHD API Key is always required
-        if not cls.EODHD_API_KEY:
-            errors.append("EODHD_API_KEY is missing")
+        # --- VALIDAZIONE EODHD API KEY RIMOSSA ---
         
-        # Telegram is optional - only validate if tokens are partially configured
+        # Telegram is optional
         if cls.TELEGRAM_BOT_TOKEN and not cls.TELEGRAM_CHAT_ID:
             errors.append("TELEGRAM_CHAT_ID is missing (BOT_TOKEN is set)")
         elif cls.TELEGRAM_CHAT_ID and not cls.TELEGRAM_BOT_TOKEN:
@@ -107,7 +101,7 @@ class Config:
         # Print configuration status
         print("✅ Configuration validated successfully")
         print(f"  - Ticker: {cls.TICKER}")
-        print(f"  - EODHD API: Configured")
+        print(f"  - Data Source: Yahoo Finance")
         print(f"  - Telegram: {'Configured' if cls.SEND_TELEGRAM_NOTIFICATIONS else 'Not configured (optional)'}")
         print(f"  - GitHub: {'Available' if cls.SAVE_TO_GITHUB else 'Not needed'}")
         
