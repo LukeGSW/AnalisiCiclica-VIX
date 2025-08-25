@@ -70,17 +70,26 @@ class DataFetcher:
                 if df.empty:
                     raise ValueError(f"No data returned for {ticker}. It might be delisted or the ticker is incorrect.")
                 
-                # Rinomina le colonne in lowercase per coerenza
-                df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+                # Gestisce il caso in cui yfinance restituisca un MultiIndex nelle colonne
+                if isinstance(df.columns, pd.MultiIndex):
+                    # Appiattiamo le colonne prendendo solo il primo livello (es. 'Open', 'Close')
+                    df.columns = df.columns.get_level_values(0)
+
+                # Ora possiamo processare le colonne in sicurezza
+                df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
                 
                 # Per gli indici come il VIX, 'adj_close' è uguale a 'close'.
                 # Per mantenere la compatibilità, ci assicuriamo che la colonna 'close' sia quella di riferimento.
-                # yfinance può restituire 'adj close'. La rinominiamo per sicurezza.
                 if 'adj_close' in df.columns:
                     df.rename(columns={'adj_close': 'close'}, inplace=True)
 
                 # Seleziona e valida le colonne richieste dal sistema
                 required_cols = ['open', 'high', 'low', 'close', 'volume']
+                
+                # Controlla che tutte le colonne necessarie esistano dopo la pulizia
+                if not all(col in df.columns for col in required_cols):
+                    raise ValueError(f"Missing required columns after download for {ticker}")
+                
                 df = df[required_cols]
                 
                 # Rimuovi eventuali righe con dati mancanti
