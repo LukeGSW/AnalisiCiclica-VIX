@@ -55,7 +55,7 @@ class Config:
     IN_SAMPLE_RATIO = 0.7
     
     # Data Parameters
-    LOOKBACK_YEARS = 10
+    LOOKBACK_YEARS = 20
     END_DATE = datetime.now().strftime('%Y-%m-%d')
     START_DATE = (datetime.now() - timedelta(days=LOOKBACK_YEARS * 365.25)).strftime('%Y-%m-%d')
     
