@@ -301,7 +301,7 @@ def main():
         st.header("⚙️ Configuration")
         
         summary = data.get('summary', {})
-        current_lookback = summary.get('lookback_years', 10)
+        current_lookback = summary.get('lookback_years', 20)
         date_range_info = summary.get('date_range', {})
         
         st.info(f"""
