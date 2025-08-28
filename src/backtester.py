@@ -1,237 +1,142 @@
-"""
-Backtesting module for Kriterion Quant Trading System
-Implements a realistic event-driven backtester for fixed-size trades.
-"""
+# src/backtester.py
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List
 import json
 import os
+
 from config import Config
 
 class Backtester:
-    """Class to perform realistic, event-driven backtesting."""
-    
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 1 >>>                    #
-    # ================================================================= #
-    def __init__(self, data_path: str, initial_capital: float = None, fees: float = None):
+    """
+    Handles backtesting of trading signals using vectorized methods
+    for speed and accuracy.
+    """
+
+    def __init__(self, data_path: str):
         """
         Initialize the backtester.
-        
+
         Parameters
         ----------
         data_path : str
-            The path to the directory where backtest results will be saved.
-        initial_capital : float, optional
-            Starting capital. Defaults to Config.INITIAL_CAPITAL.
-        fees : float, optional
-            Trading fees as a percentage. Defaults to Config.TRADING_FEES.
+            The path to the directory where backtest results should be saved.
         """
         self.data_path = data_path
-        self.initial_capital = initial_capital or Config.INITIAL_CAPITAL
-        self.fees = fees or Config.TRADING_FEES
-    # ================================================================= #
+        os.makedirs(self.data_path, exist_ok=True)
 
-    def run_backtest(self, df: pd.DataFrame) -> Dict:
+    def run_backtest(self, df_signals: pd.DataFrame) -> dict:
         """
-        Runs a realistic event-driven backtest simulating a trading account.
-        
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame with signals and prices.
-            
-        Returns
-        -------
-        Dict
-            A dictionary containing the results DataFrame, performance metrics, and trade log.
+        Runs a vectorized backtest on the provided signals DataFrame.
+        This method is suitable for a simple, single run on a given dataset.
         """
-        print("📊 Running realistic event-driven backtest...")
+        if df_signals.empty:
+            return {'metrics': {}, 'results': pd.DataFrame()}
+
+        # 1. Calculate daily returns of the asset
+        df = df_signals.copy()
+        df['returns'] = df['close'].pct_change()
+
+        # 2. Define positions based on signals (long-only strategy)
+        # We enter the position on the day AFTER the signal (shift(1))
+        df['position'] = np.nan
+        df.loc[df['signal'] == 'BUY', 'position'] = 1
+        df.loc[df['signal'] == 'SELL', 'position'] = 0
+        df['position'].fillna(method='ffill', inplace=True)
+        df['position'].fillna(0, inplace=True) # Start with no position
         
-        if 'signal' not in df.columns or 'close' not in df.columns:
-            raise ValueError("DataFrame must contain 'signal' and 'close' columns")
+        # The actual position for calculation is the previous day's signal
+        df['position'] = df['position'].shift(1).fillna(0)
 
-        results = df.copy()
+        # 3. Calculate strategy returns
+        df['strategy_returns'] = df['returns'] * df['position']
         
-        # --- Simulazione del Conto di Trading ---
-        cash = self.initial_capital
-        shares = 0.0
-        trade_size_dollars = self.initial_capital # Usa il capitale iniziale come dimensione fissa per ogni trade
+        # Apply trading fees on trades
+        trades = df['position'].diff().abs()
+        transaction_costs = trades * Config.TRADING_FEES
+        df['strategy_returns'] -= transaction_costs
 
-        equity_over_time = []
-        positions_over_time = []
-        trades_log = []
-        
-        entry_details = {}
+        # 4. Calculate equity curves
+        initial_capital = Config.INITIAL_CAPITAL
+        df['equity'] = initial_capital * (1 + df['strategy_returns']).cumprod()
+        df['benchmark_equity'] = initial_capital * (1 + df['returns']).cumprod()
 
-        for i in range(len(results)):
-            current_price = results.iloc[i]['close']
-            signal = results.iloc[i]['signal']
-            current_date = results.index[i]
+        # 5. Calculate performance metrics
+        metrics = self._calculate_metrics(df)
 
-            # Gestione dei segnali
-            if signal == 'BUY' and shares == 0:  # Entra solo se siamo FLAT
-                shares_to_buy = trade_size_dollars / current_price
-                cost = shares_to_buy * current_price * (1 + self.fees)
-                
-                # Non usiamo il cash totale, ma simuliamo un'operazione fissa
-                # In un sistema reale, qui si controllerebbe il margine, non il cash totale.
-                shares = shares_to_buy
-                entry_details = {'entry_date': current_date, 'entry_price': current_price}
-
-            elif signal == 'SELL' and shares > 0: # Esce solo se siamo LONG
-                revenue = shares * current_price * (1 - self.fees)
-                
-                if entry_details:
-                    # Calcola il rendimento del trade
-                    trade_return = (current_price - entry_details['entry_price']) / entry_details['entry_price']
-                    
-                    # Logga il trade completato
-                    trades_log.append({
-                        'entry_date': entry_details['entry_date'],
-                        'entry_price': entry_details['entry_price'],
-                        'exit_date': current_date,
-                        'exit_price': current_price,
-                        'return': trade_return
-                    })
-                    
-                    # Aggiorna il cash con il profitto/perdita del trade
-                    # (Prezzo di vendita - Prezzo di acquisto) * numero di azioni - costi
-                    profit_loss = (current_price - entry_details['entry_price']) * shares - (trade_size_dollars * self.fees * 2)
-                    cash += profit_loss
-
-                shares = 0
-                entry_details = {}
-
-            # Calcola l'equity giornaliera
-            # L'equity è il cash + il valore delle azioni se in posizione.
-            # Se siamo flat, l'equity è solo il cash accumulato.
-            # Se siamo long, l'equity è il cash meno il costo dell'operazione + il valore corrente delle azioni.
-            # Per semplicità, calcoliamo l'equity come il capitale iniziale + i profitti/perdite accumulati.
-            current_equity = cash
-            equity_over_time.append(current_equity)
-            positions_over_time.append(1 if shares > 0 else 0)
-
-        # Aggiungi i risultati al DataFrame
-        results['equity'] = equity_over_time
-        results['position'] = positions_over_time
-        results['returns'] = results['close'].pct_change().fillna(0)
-        results['benchmark_equity'] = self.initial_capital * (1 + results['returns']).cumprod()
-        
-        metrics = self._calculate_metrics(results, trades_log)
-        
         return {
-            'results': results,
             'metrics': metrics,
-            'final_equity': float(results['equity'].iloc[-1]),
-            'total_return': float((results['equity'].iloc[-1] / self.initial_capital - 1) * 100),
-            'trades_log': trades_log
+            'results': df[['equity', 'benchmark_equity', 'signal', 'position']]
         }
 
-    def run_walk_forward_analysis(self, df: pd.DataFrame, in_sample_ratio: float = None) -> Dict:
-        """
-        Perform walk-forward analysis for robust validation.
-        This function now correctly uses the realistic backtester.
-        """
-        print("🔄 Running walk-forward analysis...")
+    def _calculate_metrics(self, df: pd.DataFrame) -> dict:
+        """Calculates performance metrics from a backtest results DataFrame."""
         
-        in_sample_ratio = in_sample_ratio or Config.IN_SAMPLE_RATIO
+        equity_series = df['equity']
+        total_return = (equity_series.iloc[-1] / equity_series.iloc[0] - 1) * 100
         
-        split_idx = int(len(df) * in_sample_ratio)
-        
-        is_data = df.iloc[:split_idx]
-        oos_data = df.iloc[split_idx:]
-        
-        print(f"  In-Sample: {is_data.index[0].date()} to {is_data.index[-1].date()} ({len(is_data)} days)")
-        print(f"  Out-of-Sample: {oos_data.index[0].date()} to {oos_data.index[-1].date()} ({len(oos_data)} days)")
-        
-        # Run backtests on each segment
-        is_results = self.run_backtest(is_data) if len(is_data) > 10 else None
-        oos_results = self.run_backtest(oos_data) if len(oos_data) > 10 else None
-        
-        result = {}
-        if is_results:
-            result['in_sample'] = is_results
-            result['in_sample_metrics'] = is_results['metrics']
-        
-        if oos_results:
-            result['out_of_sample'] = oos_results
-            result['out_of_sample_metrics'] = oos_results['metrics']
-            
-        return result
-
-    def _calculate_metrics(self, results: pd.DataFrame, trades_log: List[Dict]) -> Dict:
-        """
-        Calculate comprehensive backtest metrics from realistic simulation results.
-        """
-        # --- Metriche basate sull'Equity Curve ---
-        total_return = (results['equity'].iloc[-1] / self.initial_capital - 1) * 100
-        
-        running_max = results['equity'].expanding().max()
-        drawdown = (results['equity'] - running_max) / running_max
+        # Calculate Drawdown
+        cumulative_max = equity_series.cummax()
+        drawdown = (equity_series - cumulative_max) / cumulative_max
         max_drawdown = drawdown.min() * 100
         
-        daily_returns = results['equity'].pct_change().fillna(0)
+        # Sharpe Ratio (assuming risk-free rate is 0)
+        daily_returns = df['strategy_returns']
+        sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() != 0 else 0
         
-        if daily_returns.std() > 0:
-            sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252)
-            
-            downside_returns = daily_returns[daily_returns < 0]
-            downside_std = downside_returns.std()
-            sortino_ratio = (daily_returns.mean() / downside_std) * np.sqrt(252) if downside_std > 0 else float('inf')
-            
-            annual_return = daily_returns.mean() * 252 * 100
-            calmar_ratio = annual_return / abs(max_drawdown) if max_drawdown != 0 else float('inf')
-        else:
-            sharpe_ratio = sortino_ratio = calmar_ratio = 0.0
+        # Trade analysis
+        trades = df['position'].diff().abs()
+        total_trades = trades.sum() / 2 # Each trade has an entry and exit
+        
+        trade_returns = daily_returns[trades == 1].copy()
+        wins = trade_returns[trade_returns > 0]
+        losses = trade_returns[trade_returns < 0]
+        
+        win_rate = (len(wins) / total_trades) * 100 if total_trades > 0 else 0
+        
+        total_profit = (1 + wins).prod() - 1
+        total_loss = (1 + losses).prod() - 1
+        
+        profit_factor = abs(total_profit / total_loss) if total_loss != 0 else np.inf
 
-        # --- Metriche basate sul Trade Log (più precise) ---
-        trade_returns = [t['return'] for t in trades_log]
-        
-        if trade_returns:
-            # Un trade è vincente se il suo rendimento supera i costi di transazione (andata e ritorno)
-            winning_trades = sum(1 for r in trade_returns if r > (self.fees * 2))
-            win_rate = (winning_trades / len(trade_returns)) * 100 if trade_returns else 0.0
-            
-            gross_profits = sum(r for r in trade_returns if r > 0)
-            gross_losses = abs(sum(r for r in trade_returns if r < 0))
-            profit_factor = gross_profits / gross_losses if gross_losses > 0 else float('inf')
-        else:
-            win_rate = 0.0
-            profit_factor = 0.0
-            
         return {
-            'total_return_%': float(total_return),
-            'max_drawdown_%': abs(float(max_drawdown)),
-            'sharpe_ratio': float(sharpe_ratio),
-            'sortino_ratio': float(sortino_ratio),
-            'calmar_ratio': float(calmar_ratio),
-            'total_trades': len(trade_returns),
-            'win_rate_%': float(win_rate),
-            'profit_factor': float(profit_factor)
+            'total_return_%': round(total_return, 2),
+            'max_drawdown_%': round(max_drawdown, 2),
+            'sharpe_ratio': round(sharpe_ratio, 2),
+            'total_trades': int(total_trades),
+            'win_rate_%': round(win_rate, 2),
+            'profit_factor': round(profit_factor, 2)
         }
+
+    def run_walk_forward_analysis(self, df_signals: pd.DataFrame) -> dict:
+        """
+        Performs a walk-forward analysis by splitting data into in-sample and
+        out-of-sample periods.
+        """
+        if df_signals.empty:
+            return {'in_sample': {}, 'out_of_sample': {}}
+            
+        split_point = int(len(df_signals) * Config.IN_SAMPLE_RATIO)
         
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 2 >>>                    #
-    # ================================================================= #
-    def save_backtest_results(self, results: Dict) -> str:
-        """
-        Save backtest results to JSON file inside the data_path directory.
-        """
-        # Costruiamo il percorso completo partendo da self.data_path
+        df_in_sample = df_signals.iloc[:split_point]
+        df_out_of_sample = df_signals.iloc[split_point:]
+
+        print(f"🔬 Running Walk-Forward Analysis...")
+        print(f"  - In-Sample: {df_in_sample.index[0].date()} to {df_in_sample.index[-1].date()} ({len(df_in_sample)} days)")
+        print(f"  - Out-of-Sample: {df_out_of_sample.index[0].date()} to {df_out_of_sample.index[-1].date()} ({len(df_out_of_sample)} days)")
+
+        # Run backtest on both periods
+        in_sample_results = self.run_backtest(df_in_sample)
+        out_of_sample_results = self.run_backtest(df_out_of_sample)
+
+        return {
+            'in_sample': in_sample_results['metrics'],
+            'out_of_sample': out_of_sample_results['metrics']
+        }
+
+    def save_backtest_results(self, results: dict):
+        """Saves the backtest results dictionary to a JSON file."""
         filepath = os.path.join(self.data_path, 'backtest_results.json')
-        
-        serializable_results = {}
-        if 'in_sample_metrics' in results:
-            serializable_results['in_sample'] = results['in_sample_metrics']
-        if 'out_of_sample_metrics' in results:
-            serializable_results['out_of_sample'] = results['out_of_sample_metrics']
-            
         with open(filepath, 'w') as f:
-            json.dump(serializable_results, f, indent=2)
-            
+            json.dump(results, f, indent=2, default=str)
         print(f"💾 Backtest results saved to {filepath}")
-        return filepath
-    # ================================================================= #
