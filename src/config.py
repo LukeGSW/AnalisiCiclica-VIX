@@ -20,8 +20,8 @@ def get_ticker():
     if env_ticker:
         return env_ticker.upper()
     
-    # Default - VXX ETN as a reliable proxy for VIX Futures
-    return 'VXX'
+    # Default - VIX Index
+    return '^VIX'
 
 class Config:
     """Central configuration class for the trading system"""
@@ -56,11 +56,11 @@ class Config:
     # Deprecated variable
     LOOKBACK_DAYS = LOOKBACK_YEARS * 252
     
-    # File Paths (Note: these are relative paths, the main script builds the full path)
+    # File Paths
     DATA_DIR = 'data'
-    SIGNALS_FILE = 'signals.csv'
-    HISTORICAL_DATA_FILE = 'historical_data.csv'
-    BACKTEST_RESULTS_FILE = 'backtest_results.json'
+    SIGNALS_FILE = os.path.join(DATA_DIR, 'signals.csv')
+    HISTORICAL_DATA_FILE = os.path.join(DATA_DIR, 'historical_data.csv')
+    BACKTEST_RESULTS_FILE = os.path.join(DATA_DIR, 'backtest_results.json')
     
     # Trading Rules
     BULLISH_QUADRANTS = [
