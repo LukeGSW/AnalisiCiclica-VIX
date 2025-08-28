@@ -1,84 +1,78 @@
 # src/data_fetcher.py
 
 import pandas as pd
-import yfinance as yf
 import time
 import os
 from datetime import datetime
+from alpha_vantage.timeseries import TimeSeries
 
 from config import Config
 
 class DataFetcher:
     """
-    A robust class to fetch and clean historical data from Yahoo Finance,
-    with manual adjustment and sanity checks to ensure data integrity.
+    A robust class to fetch clean, adjusted historical data from Alpha Vantage.
+    This replaces the unreliable yfinance source for tickers like VXX.
     """
 
     def __init__(self, data_path: str):
-        """
-        Initializes the data fetcher.
-        """
+        """Initializes the data fetcher."""
         self.data_path = data_path
         os.makedirs(self.data_path, exist_ok=True)
+        if not Config.ALPHA_VANTAGE_API_KEY:
+            raise ValueError("ALPHA_VANTAGE_API_KEY is not set in the environment variables.")
+        self.ts = TimeSeries(key=Config.ALPHA_VANTAGE_API_KEY, output_format='pandas')
 
     def fetch_historical_data(self, ticker: str, start: str, end: str, max_retries: int = 3) -> pd.DataFrame:
         """
-        Fetches, manually adjusts, and validates historical OHLC data.
-        This method is crucial for assets with frequent splits like VXX.
+        Fetches and processes historical OHLC data from Alpha Vantage.
         """
-        print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance...")
+        print(f"📡 Attempting to fetch '{ticker}' from Alpha Vantage...")
         retries = 0
         while retries < max_retries:
             try:
-                # Use yf.download as it can be more robust for complex tickers
-                df = yf.download(
-                    tickers=ticker,
-                    start=start,
-                    end=end,
-                    auto_adjust=False, # We need raw data to perform manual adjustment
-                    progress=False,
-                    actions=True # Ensure splits/dividends are included
-                )
+                # Alpha Vantage free tier provides up to 5 years of data with 'compact'
+                # and full history with 'full'. We use 'full'.
+                data, meta_data = self.ts.get_daily_adjusted(symbol=ticker, outputsize='full')
                 
-                if df.empty or 'Adj Close' not in df.columns:
-                    raise ValueError("No data returned or 'Adj Close' column is missing.")
+                if data.empty:
+                    raise ValueError("No data returned from Alpha Vantage.")
 
-                # Manually adjust the data to prevent errors
-                df_adj = pd.DataFrame(index=df.index)
+                # Rename columns to match the project's convention
+                data.rename(columns={
+                    '1. open': 'open',
+                    '2. high': 'high',
+                    '3. low': 'low',
+                    '4. close': 'close',
+                    '6. volume': 'volume',
+                    '5. adjusted close': 'adj_close' # Keep for reference if needed
+                }, inplace=True)
                 
-                # The adjustment ratio correctly accounts for splits and dividends
-                adjustment_ratio = df['Adj Close'] / df['Close']
+                # The data is returned in descending order, so we reverse it
+                data = data.iloc[::-1]
                 
-                df_adj['open'] = df['Open'] * adjustment_ratio
-                df_adj['high'] = df['High'] * adjustment_ratio
-                df_adj['low'] = df['Low'] * adjustment_ratio
-                df_adj['close'] = df['Adj Close'] # The adjusted close is the ground truth
-                df_adj['volume'] = df['Volume']
-                df_adj.dropna(inplace=True)
+                # Filter by date range
+                data.index = pd.to_datetime(data.index)
+                mask = (data.index >= start) & (data.index <= end)
+                df_filtered = data.loc[mask]
 
-                # ================================================================= #
-                #               <<< SANITY CHECK FONDAMENTALE >>>                 #
-                # ================================================================= #
-                # Controlla se il prezzo più recente è plausibile.
-                # VXX non è sopra i $150 da anni. Se lo è, i dati non sono aggiustati.
-                last_price = df_adj['close'].iloc[-1]
-                if last_price > 150: # Soglia di sicurezza molto alta
-                    raise ValueError(
-                        f"Data for {ticker} appears unadjusted and corrupted. "
-                        f"Last close price is {last_price:.2f}, which is unrealistic. "
-                        "This is a known issue with yfinance for this ticker in some environments."
-                    )
-                # ================================================================= #
+                # Use the adjusted close as the primary close price
+                df_filtered['close'] = df_filtered['adj_close']
                 
-                print(f"✅ Successfully fetched and adjusted {len(df_adj)} rows for '{ticker}'.")
-                return df_adj[['open', 'high', 'low', 'close', 'volume']]
+                # Select final columns and drop any remaining NaNs
+                final_df = df_filtered[['open', 'high', 'low', 'close', 'volume']].copy()
+                final_df.dropna(inplace=True)
+
+                print(f"✅ Successfully fetched {len(final_df)} rows for '{ticker}' from Alpha Vantage.")
+                return final_df
 
             except Exception as e:
                 retries += 1
-                print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}")
+                # The free API has a limit of 5 calls per minute. We wait to avoid hitting it.
+                wait_time = 15 * retries 
+                print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}. Waiting {wait_time}s...")
                 if retries >= max_retries:
-                    raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts. The data source is likely unreliable for this ticker in this environment.")
-                time.sleep(retries * 2)
+                    raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts.")
+                time.sleep(wait_time)
         
         return pd.DataFrame()
 
@@ -103,19 +97,23 @@ class DataFetcher:
         """Updates the local data file with the latest data."""
         try:
             existing_df = self.load_data()
-            last_date = existing_df.index[-1]
-            start_update_date = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
-            print(f"📅 Last data point is {last_date.strftime('%Y-%m-%d')}. Fetching new data...")
+            # Alpha Vantage can have a delay, so we re-fetch the last few days
+            start_update_date = (existing_df.index[-1] - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+            print(f"📅 Last data point is {existing_df.index[-1].strftime('%Y-%m-%d')}. Fetching new data...")
             
-            new_df = self.fetch_historical_data(
-                ticker=ticker,
-                start=start_update_date,
-                end=datetime.now().strftime('%Y-%m-%d')
-            )
+            # Fetching the last 100 data points is the most reliable way with AV
+            data, meta_data = self.ts.get_daily_adjusted(symbol=ticker, outputsize='compact')
+            data.rename(columns={'1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '6. volume': 'volume', '5. adjusted close': 'adj_close'}, inplace=True)
+            data = data.iloc[::-1]
+            data.index = pd.to_datetime(data.index)
+            new_df = data.copy()
+            new_df['close'] = new_df['adj_close']
+            new_df = new_df[['open', 'high', 'low', 'close', 'volume']]
             
             if not new_df.empty:
                 combined_df = pd.concat([existing_df, new_df])
                 combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
+                combined_df.sort_index(inplace=True)
                 self.save_data(combined_df)
                 return combined_df
             else:
