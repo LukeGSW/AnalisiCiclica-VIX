@@ -82,7 +82,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
 def get_available_tickers(path='data'):
     """Scansiona la directory dati e restituisce un elenco di ticker disponibili."""
     if not os.path.exists(path):
@@ -91,7 +90,7 @@ def get_available_tickers(path='data'):
     return sorted(tickers)
 
 @st.cache_data(ttl=600) # Cache dei dati per 10 minuti
-def load_data_from_path(ticker_path):
+def load_data_from_path(ticker_path): # <<< Nome e parametro cambiati
     """Carica tutti i dati necessari da un percorso specifico."""
     if not os.path.exists(ticker_path):
         return None
@@ -100,15 +99,7 @@ def load_data_from_path(ticker_path):
     try:
         # Carica i file usando il percorso fornito
         signals_file = os.path.join(ticker_path, 'signals.csv')
-        
-        # ================================================================= #
-        #                   <<< CORREZIONE FUSO ORARIO >>>                  #
-        # ================================================================= #
-        # Carica i dati e rimuovi subito la timezone per evitare errori
-        df_signals = pd.read_csv(signals_file, index_col='date', parse_dates=True)
-        df_signals.index = df_signals.index.tz_localize(None)
-        data['signals'] = df_signals
-        # ================================================================= #
+        data['signals'] = pd.read_csv(signals_file, index_col='date', parse_dates=True)
 
         latest_signal_file = os.path.join(ticker_path, 'signals_latest.json')
         with open(latest_signal_file, 'r') as f:
@@ -199,7 +190,6 @@ def run_analysis_for_ticker(ticker, lookback_years=10):
             
     except Exception as e:
         return False, f"Error during analysis for {ticker}: {e}"
-
 def load_data():
     """Load all necessary data files"""
     data = {}
@@ -207,13 +197,7 @@ def load_data():
     # Load signals data
     signals_file = Config.SIGNALS_FILE
     if os.path.exists(signals_file):
-        # ================================================================= #
-        #                   <<< CORREZIONE FUSO ORARIO >>>                  #
-        # ================================================================= #
-        df_signals = pd.read_csv(signals_file, index_col='date', parse_dates=True)
-        df_signals.index = df_signals.index.tz_localize(None)
-        data['signals'] = df_signals
-        # ================================================================= #
+        data['signals'] = pd.read_csv(signals_file, index_col='date', parse_dates=True)
     else:
         return None
     
@@ -392,29 +376,36 @@ def main():
             
         selected_ticker = st.selectbox("Select Ticker", available_tickers)
         
+    # ================================================================= #
+    #                               <<< CORREZIONE QUI >>>              #
+    # ================================================================= #
     # Definiamo il percorso UNA SOLA VOLTA qui
     ticker_data_path = os.path.join('data', selected_ticker)
 
     # Carichiamo i dati usando il percorso completo
     data = load_data_from_path(ticker_data_path)
+    # ================================================================= #
 
     # --- Main Page ---
     st.markdown(f"### Cycle-Based Trading Strategy for {selected_ticker}")
 
     if data is None:
         st.warning(f"⚠️ Data for {selected_ticker} is missing or corrupted. Please re-run the analysis.")
+        # Qui potresti aggiungere un pulsante per rieseguire l'analisi per questo specifico ticker se lo desideri
         return
     
     # Regular dashboard view (when data exists)
     # Sidebar
     with st.sidebar:
+        st.header("⚙️ Configuration")
+        
         # Display current configuration
         summary = data.get('summary', {})
         current_lookback = summary.get('lookback_years', 10)
         date_range_info = summary.get('date_range', {})
         
         st.info(f"""
-        **Ticker:** {selected_ticker}  
+        **Ticker:** {Config.TICKER}  
         **Current Lookback:** {current_lookback} years  
         **Data Range:** {date_range_info.get('start', 'N/A')} to {date_range_info.get('end', 'N/A')}  
         **Fast MA:** {Config.FAST_MA_WINDOW}  
@@ -444,15 +435,17 @@ def main():
             st.caption(f"This will analyze data from {new_start} to {new_end}")
         
         # Run analysis button
+# All'interno della sidebar...
         if st.button("Run New Analysis", use_container_width=True):
+            # Usiamo il nuovo nome e passiamo anche il ticker selezionato
             success, message = run_analysis_for_ticker(selected_ticker, new_lookback)
             if success:
                 st.success(message)
+                # Rimuovi la cache per forzare il ricaricamento dei nuovi dati
                 st.cache_data.clear()
                 st.rerun()
             else:
                 st.error(message)      
-        
         # Cycle analysis info
         if 'cycle_analysis' in summary:
             st.markdown("---")
@@ -476,26 +469,32 @@ def main():
         st.header("📅 Date Filter")
         df_signals = data['signals']
         
-        # Ensure the index is datetime before finding min/max
-        df_signals.index = pd.to_datetime(df_signals.index)
-
         date_range = st.date_input(
             "Select date range",
-            value=(df_signals.index.min().date(), df_signals.index.max().date()),
-            min_value=df_signals.index.min().date(),
-            max_value=df_signals.index.max().date(),
+            value=(df_signals.index[0], df_signals.index[-1]),
+            min_value=df_signals.index[0],
+            max_value=df_signals.index[-1],
             key="date_filter_widget"
         )
                 
+        # ================================================================= #
+        #               <<< CORREZIONE DEFINITIVA FUSO ORARIO >>>           #
+        # ================================================================= #
         # Filtra i dati in base all'intervallo selezionato nel widget
         if len(date_range) == 2:
-            # Convert date objects from widget to timestamps for comparison
             start_ts = pd.Timestamp(date_range[0])
             end_ts = pd.Timestamp(date_range[1])
+
+            # Se l'indice dei dati ha un fuso orario, localizziamo anche i timestamp del filtro.
+            if df_signals.index.tz is not None:
+                start_ts = start_ts.tz_localize(df_signals.index.tz)
+                end_ts = end_ts.tz_localize(df_signals.index.tz)
+
             mask = (df_signals.index >= start_ts) & (df_signals.index <= end_ts)
             df_filtered = df_signals.loc[mask]
         else:
             df_filtered = df_signals
+        # ================================================================= #
     
     # Main content area
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Current Status", "📈 Analysis", "🎯 Backtest", "📋 History"])
@@ -600,64 +599,67 @@ def main():
                 st.metric("Sell Signals", sell_signals)
     
     with tab3:
-        st.header("Backtest Results")
-
-        # --- Equity Curve per l'intervallo selezionato ---
-        st.subheader("💰 Equity Curve")
-        
-        # Passiamo il percorso dati del ticker selezionato al Backtester
-        backtester = Backtester(data_path=ticker_data_path)
-        
-        # Eseguiamo un backtest semplice solo per la visualizzazione sull'intervallo scelto
-        backtest_visual_output = backtester.run_backtest(df_filtered)
-        results_visual_df = backtest_visual_output.get('results')
-        
-        if results_visual_df is not None and not results_visual_df.empty:
-            fig_equity = create_equity_chart(results_visual_df)
-            st.plotly_chart(fig_equity, use_container_width=True)
-        else:
-            st.warning("Could not generate equity curve for the selected range.")
-
-        # --- Metriche dal Walk-Forward Analysis (più robuste) ---
-        st.subheader("📊 Performance Metrics (Walk-Forward Analysis)")
-        backtest_data = data.get('backtest', {})
-        
-        # Controlla se abbiamo i risultati del Walk-Forward
-        if 'in_sample' in backtest_data and 'out_of_sample' in backtest_data:
-            is_metrics = backtest_data['in_sample']
-            oos_metrics = backtest_data['out_of_sample']
+            st.header("Backtest Results")
+    
+            # --- Equity Curve per l'intervallo selezionato ---
+            st.subheader("💰 Equity Curve")
             
-            col1, col2 = st.columns(2)
+            # ================================================================= #
+            #                               <<< CORREZIONE QUI >>>              #
+            # ================================================================= #
+            # Passiamo il percorso dati del ticker selezionato al Backtester
+            backtester = Backtester(data_path=ticker_data_path)
+            # ================================================================= #
             
-            with col1:
-                st.markdown("**In-Sample Performance**")
-                for key, value in is_metrics.items():
-                    st.metric(
-                        label=key.replace('_', ' ').title().replace('%', ''),
-                        value=f"{float(value):.2f}{'%' if '%' in key else ''}"
-                    )
+            # Eseguiamo un backtest semplice solo per la visualizzazione sull'intervallo scelto
+            backtest_visual_output = backtester.run_backtest(df_filtered)
+            results_visual_df = backtest_visual_output.get('results')
             
-            with col2:
-                st.markdown("**Out-of-Sample Performance**")
-                for key, value in oos_metrics.items():
-                    st.metric(
-                        label=key.replace('_', ' ').title().replace('%', ''),
-                        value=f"{float(value):.2f}{'%' if '%' in key else ''}"
-                    )
-        else:
-            # Fallback
-            st.markdown("*(Displaying simple backtest metrics as Walk-Forward results are not available)*")
-            metrics = backtest_visual_output.get('metrics', {})
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Total Return", f"{metrics.get('total_return_%', 0):.2f}%")
-                st.metric("Max Drawdown", f"{metrics.get('max_drawdown_%', 0):.2f}%")
-                st.metric("Sharpe Ratio", f"{metrics.get('sharpe_ratio', 0):.2f}")
-            with col2:
-                st.metric("Total Trades", f"{int(metrics.get('total_trades', 0)):.0f}")
-                st.metric("Win Rate", f"{metrics.get('win_rate_%', 0):.1f}%")
-                st.metric("Profit Factor", f"{metrics.get('profit_factor', 0):.2f}")
-
+            if results_visual_df is not None:
+                fig_equity = create_equity_chart(results_visual_df)
+                st.plotly_chart(fig_equity, use_container_width=True)
+            else:
+                st.warning("Could not generate equity curve for the selected range.")
+    
+            # --- Metriche dal Walk-Forward Analysis (più robuste) ---
+            st.subheader("📊 Performance Metrics (Walk-Forward Analysis)")
+            backtest_data = data.get('backtest', {})
+            
+            # Controlla se abbiamo i risultati del Walk-Forward
+            if 'in_sample' in backtest_data and 'out_of_sample' in backtest_data:
+                is_metrics = backtest_data['in_sample']
+                oos_metrics = backtest_data['out_of_sample']
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**In-Sample Performance**")
+                    for key, value in is_metrics.items():
+                        st.metric(
+                            label=key.replace('_', ' ').title().replace('%', ''),
+                            value=f"{float(value):.2f}{'%' if '%' in key else ''}"
+                        )
+                
+                with col2:
+                    st.markdown("**Out-of-Sample Performance**")
+                    for key, value in oos_metrics.items():
+                        st.metric(
+                            label=key.replace('_', ' ').title().replace('%', ''),
+                            value=f"{float(value):.2f}{'%' if '%' in key else ''}"
+                        )
+            else:
+                # Fallback
+                st.markdown("*(Displaying simple backtest metrics as Walk-Forward results are not available)*")
+                metrics = backtest_visual_output.get('metrics', {})
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Total Return", f"{metrics.get('total_return_%', 0):.2f}%")
+                    st.metric("Max Drawdown", f"{metrics.get('max_drawdown_%', 0):.2f}%")
+                    st.metric("Sharpe Ratio", f"{metrics.get('sharpe_ratio', 0):.2f}")
+                with col2:
+                    st.metric("Total Trades", f"{int(metrics.get('total_trades', 0)):.0f}")
+                    st.metric("Win Rate", f"{metrics.get('win_rate_%', 0):.1f}%")
+                    st.metric("Profit Factor", f"{metrics.get('profit_factor', 0):.2f}")
     with tab4:
         st.header("Trading History")
         
@@ -679,7 +681,7 @@ def main():
         st.download_button(
             label="Download Signals Data (CSV)",
             data=csv,
-            file_name=f"kriterion_signals_{selected_ticker}_{datetime.now().strftime('%Y%m%d')}.csv",
+            file_name=f"kriterion_signals_{Config.TICKER}_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
         )
     
