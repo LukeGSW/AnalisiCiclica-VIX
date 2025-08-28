@@ -97,7 +97,11 @@ def load_data_from_path(ticker_path): # <<< Nome e parametro cambiati
     try:
         # Carica i file usando il percorso fornito
         signals_file = os.path.join(ticker_path, 'signals.csv')
-        data['signals'] = pd.read_csv(signals_file, index_col='date', parse_dates=True)
+        
+        # Carica i dati e rimuovi subito la timezone
+        df = pd.read_csv(signals_file, index_col='date', parse_dates=True)
+        df.index = df.index.tz_localize(None) # <-- THIS IS THE FIX
+        data['signals'] = df
 
         latest_signal_file = os.path.join(ticker_path, 'signals_latest.json')
         with open(latest_signal_file, 'r') as f:
