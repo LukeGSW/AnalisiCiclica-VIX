@@ -8,42 +8,57 @@ import os
 from config import Config
 
 class DataFetcher:
-    """Class to handle data fetching, saving, and loading."""
+    """
+    A robust class to fetch and clean historical data from Yahoo Finance,
+    with manual adjustment for splits and dividends to ensure data integrity.
+    """
 
     def __init__(self, data_path: str):
         """
-        Initialize the data fetcher.
-
-        Parameters
-        ----------
-        data_path : str
-            The path to the directory where data for a specific ticker is saved.
+        Initializes the data fetcher.
         """
         self.data_path = data_path
         os.makedirs(self.data_path, exist_ok=True)
 
     def fetch_historical_data(self, ticker: str, start: str, end: str, max_retries: int = 3) -> pd.DataFrame:
-        """Fetches historical OHLC data from Yahoo Finance."""
+        """
+        Fetches and manually adjusts historical OHLC data from Yahoo Finance.
+        This method is crucial for assets with frequent splits like VXX.
+        """
         print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance...")
         retries = 0
         while retries < max_retries:
             try:
                 asset = yf.Ticker(ticker)
-                df = asset.history(start=start, end=end)
+                # Step 1: Download raw data without auto-adjustment
+                df = asset.history(start=start, end=end, auto_adjust=False)
                 
-                if df.empty:
-                    raise ValueError("No data returned from Yahoo Finance")
+                if df.empty or 'Adj Close' not in df.columns:
+                    raise ValueError("No data returned or 'Adj Close' column is missing.")
+
+                # Step 2: Manually adjust the data to prevent errors
+                # Create a clean dataframe to store the adjusted values
+                df_adj = pd.DataFrame(index=df.index)
                 
-                df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
-                if 'adj_close' in df.columns:
-                    df.rename(columns={'adj_close': 'close'}, inplace=True)
+                # Calculate the adjustment ratio from the raw close and adjusted close
+                adjustment_ratio = df['Adj Close'] / df['Close']
+                
+                # Apply the ratio to all OHLC columns
+                df_adj['open'] = df['Open'] * adjustment_ratio
+                df_adj['high'] = df['High'] * adjustment_ratio
+                df_adj['low'] = df['Low'] * adjustment_ratio
+                df_adj['close'] = df['Adj Close'] # The adjusted close is the ground truth
+                df_adj['volume'] = df['Volume']
+
+                # Step 3: Clean and validate the final dataframe
+                df_adj.dropna(inplace=True)
                 
                 required_cols = ['open', 'high', 'low', 'close', 'volume']
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"Data for {ticker} is missing required columns.")
+                if not all(col in df_adj.columns for col in required_cols):
+                    raise ValueError(f"Data for {ticker} is missing required columns after adjustment.")
                 
-                print(f"✅ Successfully fetched {len(df)} rows for '{ticker}'.")
-                return df[required_cols].dropna()
+                print(f"✅ Successfully fetched and adjusted {len(df_adj)} rows for '{ticker}'.")
+                return df_adj[required_cols]
 
             except Exception as e:
                 retries += 1
@@ -55,14 +70,14 @@ class DataFetcher:
         return pd.DataFrame()
 
     def save_data(self, df: pd.DataFrame):
-        """Saves the DataFrame to historical_data.csv in the instance's data_path."""
+        """Saves the DataFrame to historical_data.csv."""
         filepath = os.path.join(self.data_path, 'historical_data.csv')
         df.index.name = 'date'
         df.to_csv(filepath)
         print(f"💾 Data saved to {filepath}")
 
     def load_data(self) -> pd.DataFrame:
-        """Loads data from historical_data.csv in the instance's data_path."""
+        """Loads data from historical_data.csv."""
         filepath = os.path.join(self.data_path, 'historical_data.csv')
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Data file not found: {filepath}")
@@ -72,12 +87,12 @@ class DataFetcher:
         return df
 
     def update_latest_data(self, ticker: str) -> pd.DataFrame:
-        """Updates the local data file with the latest data from the source."""
+        """Updates the local data file with the latest data."""
         try:
             existing_df = self.load_data()
             last_date = existing_df.index[-1]
             start_update_date = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
-            print(f"📅 Last data point is {last_date.strftime('%Y-%m-%d')}. Fetching new data from {start_update_date}...")
+            print(f"📅 Last data point is {last_date.strftime('%Y-%m-%d')}. Fetching new data...")
             
             new_df = self.fetch_historical_data(
                 ticker=ticker,
@@ -87,7 +102,7 @@ class DataFetcher:
             
             if not new_df.empty:
                 combined_df = pd.concat([existing_df, new_df])
-                combined_df = combined_df[~combined_df.index.duplicated(keep='last')] # De-duplicate just in case
+                combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
                 self.save_data(combined_df)
                 return combined_df
             else:
