@@ -486,9 +486,10 @@ def main():
             end_ts = pd.Timestamp(date_range[1])
 
             # Se l'indice dei dati ha un fuso orario, localizziamo anche i timestamp del filtro.
-            if df_signals.index.tz is not None:
-                start_ts = start_ts.tz_localize(df_signals.index.tz)
-                end_ts = end_ts.tz_localize(df_signals.index.tz)
+            # Usa .tzinfo che è l'attributo corretto e robusto.
+            if df_signals.index.tzinfo is not None:
+                start_ts = start_ts.tz_localize(df_signals.index.tzinfo)
+                end_ts = end_ts.tz_localize(df_signals.index.tzinfo)
 
             mask = (df_signals.index >= start_ts) & (df_signals.index <= end_ts)
             df_filtered = df_signals.loc[mask]
