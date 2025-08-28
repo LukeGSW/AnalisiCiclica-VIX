@@ -21,7 +21,7 @@ def get_ticker():
         return env_ticker.upper()
     
     # Default - VIX Index
-    return '^VIX'
+    return '^VX=F'
 
 class Config:
     """Central configuration class for the trading system"""
