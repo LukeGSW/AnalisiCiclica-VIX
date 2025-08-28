@@ -13,7 +13,7 @@ on:
       ticker:
         description: 'Stock ticker to analyze'
         required: false
-        default: '^VFTW1'
+        default: '^VIX'
 
 jobs:
   analyze:
@@ -51,13 +51,13 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        TICKER: ${{ github.event.inputs.ticker || '^VFTW1' }}
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       run: |
         python main_analysis.py
     
     - name: Commit and push results
       env:
-        TICKER: ${{ github.event.inputs.ticker || '^VFTW1' }}
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
@@ -76,7 +76,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       env:
-        TICKER: ${{ github.event.inputs.ticker || '^VFTW1' }}
+        TICKER: ${{ github.event.inputs.ticker || '^VIX' }}
       with:
         name: analysis-results-${{ env.TICKER }}
         path: |
