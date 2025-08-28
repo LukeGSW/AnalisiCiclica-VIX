@@ -47,11 +47,21 @@ class DataFetcher:
         
         while retries < max_retries:
             try:
-                df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+                # ================================================================= #
+                #                 <<< MODIFICA CHIAVE QUI >>>                     #
+                # ================================================================= #
+                # VECCHIO CODICE:
+                # df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+                
+                # NUOVO CODICE, PIÙ ROBUSTO PER I FUTURE:
+                asset = yf.Ticker(ticker)
+                df = asset.history(start=start_date, end=end_date)
+                # ================================================================= #
 
                 if df.empty:
                     raise ValueError(f"No data returned for {ticker}. It might be delisted or the ticker is incorrect.")
                 
+                # La tua ottima logica di pulizia dati viene mantenuta
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = df.columns.get_level_values(0)
 
@@ -104,12 +114,7 @@ class DataFetcher:
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Data file not found: {filepath}")
         
-        # ================================================================= #
-        #                      <<< CORREZIONE QUI >>>                       #
-        # ================================================================= #
-        # Ora legge correttamente la colonna 'date' con la 'd' minuscola
         df = pd.read_csv(filepath, index_col='date', parse_dates=True)
-        # ================================================================= #
         
         print(f"📂 Loaded {len(df)} days of data from {filepath}")
         return df
@@ -132,9 +137,14 @@ class DataFetcher:
             )
             
             if not new_df.empty:
+                # Rimuovi la prima riga del nuovo df se l'indice è uguale all'ultima data esistente
+                if new_df.index[0] == existing_df.index[-1]:
+                    new_df = new_df.iloc[1:]
+
                 combined_df = pd.concat([existing_df, new_df])
-                combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
+                # Non è più necessario rimuovere duplicati con questo approccio
                 combined_df.sort_index(inplace=True)
+
             else:
                 print("No new data to combine.")
                 combined_df = existing_df
