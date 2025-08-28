@@ -4,13 +4,14 @@ import pandas as pd
 import yfinance as yf
 import time
 import os
+from datetime import datetime
 
 from config import Config
 
 class DataFetcher:
     """
     A robust class to fetch and clean historical data from Yahoo Finance,
-    with manual adjustment for splits and dividends to ensure data integrity.
+    with manual adjustment and sanity checks to ensure data integrity.
     """
 
     def __init__(self, data_path: str):
@@ -22,49 +23,61 @@ class DataFetcher:
 
     def fetch_historical_data(self, ticker: str, start: str, end: str, max_retries: int = 3) -> pd.DataFrame:
         """
-        Fetches and manually adjusts historical OHLC data from Yahoo Finance.
+        Fetches, manually adjusts, and validates historical OHLC data.
         This method is crucial for assets with frequent splits like VXX.
         """
         print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance...")
         retries = 0
         while retries < max_retries:
             try:
-                asset = yf.Ticker(ticker)
-                # Step 1: Download raw data without auto-adjustment
-                df = asset.history(start=start, end=end, auto_adjust=False)
+                # Use yf.download as it can be more robust for complex tickers
+                df = yf.download(
+                    tickers=ticker,
+                    start=start,
+                    end=end,
+                    auto_adjust=False, # We need raw data to perform manual adjustment
+                    progress=False,
+                    actions=True # Ensure splits/dividends are included
+                )
                 
                 if df.empty or 'Adj Close' not in df.columns:
                     raise ValueError("No data returned or 'Adj Close' column is missing.")
 
-                # Step 2: Manually adjust the data to prevent errors
-                # Create a clean dataframe to store the adjusted values
+                # Manually adjust the data to prevent errors
                 df_adj = pd.DataFrame(index=df.index)
                 
-                # Calculate the adjustment ratio from the raw close and adjusted close
+                # The adjustment ratio correctly accounts for splits and dividends
                 adjustment_ratio = df['Adj Close'] / df['Close']
                 
-                # Apply the ratio to all OHLC columns
                 df_adj['open'] = df['Open'] * adjustment_ratio
                 df_adj['high'] = df['High'] * adjustment_ratio
                 df_adj['low'] = df['Low'] * adjustment_ratio
                 df_adj['close'] = df['Adj Close'] # The adjusted close is the ground truth
                 df_adj['volume'] = df['Volume']
-
-                # Step 3: Clean and validate the final dataframe
                 df_adj.dropna(inplace=True)
-                
-                required_cols = ['open', 'high', 'low', 'close', 'volume']
-                if not all(col in df_adj.columns for col in required_cols):
-                    raise ValueError(f"Data for {ticker} is missing required columns after adjustment.")
+
+                # ================================================================= #
+                #               <<< SANITY CHECK FONDAMENTALE >>>                 #
+                # ================================================================= #
+                # Controlla se il prezzo più recente è plausibile.
+                # VXX non è sopra i $150 da anni. Se lo è, i dati non sono aggiustati.
+                last_price = df_adj['close'].iloc[-1]
+                if last_price > 150: # Soglia di sicurezza molto alta
+                    raise ValueError(
+                        f"Data for {ticker} appears unadjusted and corrupted. "
+                        f"Last close price is {last_price:.2f}, which is unrealistic. "
+                        "This is a known issue with yfinance for this ticker in some environments."
+                    )
+                # ================================================================= #
                 
                 print(f"✅ Successfully fetched and adjusted {len(df_adj)} rows for '{ticker}'.")
-                return df_adj[required_cols]
+                return df_adj[['open', 'high', 'low', 'close', 'volume']]
 
             except Exception as e:
                 retries += 1
                 print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}")
                 if retries >= max_retries:
-                    raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts.")
+                    raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts. The data source is likely unreliable for this ticker in this environment.")
                 time.sleep(retries * 2)
         
         return pd.DataFrame()
