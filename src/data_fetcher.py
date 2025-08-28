@@ -1,78 +1,57 @@
 # src/data_fetcher.py
 
 import pandas as pd
+import yfinance as yf
 import time
 import os
 from datetime import datetime
-from alpha_vantage.timeseries import TimeSeries
 
 from config import Config
 
 class DataFetcher:
     """
-    A robust class to fetch clean, adjusted historical data from Alpha Vantage.
-    This replaces the unreliable yfinance source for tickers like VXX.
+    A generic class to fetch, save, and load data from Yahoo Finance.
     """
 
     def __init__(self, data_path: str):
-        """Initializes the data fetcher."""
+        """
+        Initializes the data fetcher.
+        """
         self.data_path = data_path
         os.makedirs(self.data_path, exist_ok=True)
-        if not Config.ALPHA_VANTAGE_API_KEY:
-            raise ValueError("ALPHA_VANTAGE_API_KEY is not set in the environment variables.")
-        self.ts = TimeSeries(key=Config.ALPHA_VANTAGE_API_KEY, output_format='pandas')
 
     def fetch_historical_data(self, ticker: str, start: str, end: str, max_retries: int = 3) -> pd.DataFrame:
         """
-        Fetches and processes historical OHLC data from Alpha Vantage.
+        Fetches historical OHLC data from Yahoo Finance using a robust method.
         """
-        print(f"📡 Attempting to fetch '{ticker}' from Alpha Vantage...")
+        print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance...")
         retries = 0
         while retries < max_retries:
             try:
-                # Alpha Vantage free tier provides up to 5 years of data with 'compact'
-                # and full history with 'full'. We use 'full'.
-                data, meta_data = self.ts.get_daily_adjusted(symbol=ticker, outputsize='full')
+                # Using yf.Ticker().history() is generally stable for indices
+                asset = yf.Ticker(ticker)
+                df = asset.history(start=start, end=end, auto_adjust=True)
                 
-                if data.empty:
-                    raise ValueError("No data returned from Alpha Vantage.")
-
-                # Rename columns to match the project's convention
-                data.rename(columns={
-                    '1. open': 'open',
-                    '2. high': 'high',
-                    '3. low': 'low',
-                    '4. close': 'close',
-                    '6. volume': 'volume',
-                    '5. adjusted close': 'adj_close' # Keep for reference if needed
-                }, inplace=True)
+                if df.empty:
+                    raise ValueError("No data returned from Yahoo Finance")
                 
-                # The data is returned in descending order, so we reverse it
-                data = data.iloc[::-1]
+                # Clean column names
+                df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
                 
-                # Filter by date range
-                data.index = pd.to_datetime(data.index)
-                mask = (data.index >= start) & (data.index <= end)
-                df_filtered = data.loc[mask]
-
-                # Use the adjusted close as the primary close price
-                df_filtered['close'] = df_filtered['adj_close']
+                # Ensure all required columns are present
+                required_cols = ['open', 'high', 'low', 'close', 'volume']
+                if not all(col in df.columns for col in required_cols):
+                    raise ValueError(f"Data for {ticker} is missing required columns.")
                 
-                # Select final columns and drop any remaining NaNs
-                final_df = df_filtered[['open', 'high', 'low', 'close', 'volume']].copy()
-                final_df.dropna(inplace=True)
-
-                print(f"✅ Successfully fetched {len(final_df)} rows for '{ticker}' from Alpha Vantage.")
-                return final_df
+                print(f"✅ Successfully fetched {len(df)} rows for '{ticker}'.")
+                return df[required_cols].dropna()
 
             except Exception as e:
                 retries += 1
-                # The free API has a limit of 5 calls per minute. We wait to avoid hitting it.
-                wait_time = 15 * retries 
-                print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}. Waiting {wait_time}s...")
+                print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}")
                 if retries >= max_retries:
                     raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts.")
-                time.sleep(wait_time)
+                time.sleep(retries * 2)
         
         return pd.DataFrame()
 
@@ -97,23 +76,19 @@ class DataFetcher:
         """Updates the local data file with the latest data."""
         try:
             existing_df = self.load_data()
-            # Alpha Vantage can have a delay, so we re-fetch the last few days
-            start_update_date = (existing_df.index[-1] - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
-            print(f"📅 Last data point is {existing_df.index[-1].strftime('%Y-%m-%d')}. Fetching new data...")
+            last_date = existing_df.index[-1]
+            start_update_date = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            print(f"📅 Last data point is {last_date.strftime('%Y-%m-%d')}. Fetching new data...")
             
-            # Fetching the last 100 data points is the most reliable way with AV
-            data, meta_data = self.ts.get_daily_adjusted(symbol=ticker, outputsize='compact')
-            data.rename(columns={'1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close', '6. volume': 'volume', '5. adjusted close': 'adj_close'}, inplace=True)
-            data = data.iloc[::-1]
-            data.index = pd.to_datetime(data.index)
-            new_df = data.copy()
-            new_df['close'] = new_df['adj_close']
-            new_df = new_df[['open', 'high', 'low', 'close', 'volume']]
+            new_df = self.fetch_historical_data(
+                ticker=ticker,
+                start=start_update_date,
+                end=datetime.now().strftime('%Y-%m-%d')
+            )
             
             if not new_df.empty:
                 combined_df = pd.concat([existing_df, new_df])
                 combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
-                combined_df.sort_index(inplace=True)
                 self.save_data(combined_df)
                 return combined_df
             else:
