@@ -13,8 +13,8 @@ on:
       ticker:
         description: 'Stock ticker to analyze'
         required: false
-        # --- MODIFICA 1: Ticker di default aggiornato a VX=F ---
-        default: 'VX=F'
+        # --- MODIFICA 1: Ticker di default aggiornato a VXX ---
+        default: 'VXX'
 
 jobs:
   analyze:
@@ -54,22 +54,22 @@ jobs:
         # EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        # --- MODIFICA 3: Ticker di fallback aggiornato a VX=F ---
-        TICKER: ${{ github.event.inputs.ticker || 'VX=F' }}
+        # --- MODIFICA 3: Ticker di fallback aggiornato a VXX ---
+        TICKER: ${{ github.event.inputs.ticker || 'VXX' }}
       run: |
         python main_analysis.py
     
     - name: Commit and push results
       env:
-        # --- MODIFICA 4: Ticker di fallback aggiornato a VX=F ---
-        TICKER: ${{ github.event.inputs.ticker || 'VX=F' }}
+        # --- MODIFICA 4: Ticker di fallback aggiornato a VXX ---
+        TICKER: ${{ github.event.inputs.ticker || 'VXX' }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
         # Aggiungiamo al commit la cartella specifica del ticker
         # NOTA: GitHub Actions potrebbe avere problemi con caratteri speciali come '^'.
-        # Se il commit fallisce, potrebbe essere necessario mappare 'VX=F' a VX=F' come nome di cartella.
+        # Se il commit fallisce, potrebbe essere necessario mappare 'VXX' a VXX' come nome di cartella.
         # Per ora, lasciamo così che è più diretto.
         git add data/"${{ env.TICKER }}"/
         
@@ -84,8 +84,8 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       env:
-        # --- MODIFICA 5: Ticker di fallback aggiornato a VX=F ---
-        TICKER: ${{ github.event.inputs.ticker || 'VX=F' }}
+        # --- MODIFICA 5: Ticker di fallback aggiornato a VXX ---
+        TICKER: ${{ github.event.inputs.ticker || 'VXX' }}
       with:
         name: analysis-results-${{ env.TICKER }}
         path: |
