@@ -1,12 +1,12 @@
 {
-  "date": "2025-09-02",
+  "date": "2025-09-03",
   "signal": "HOLD",
   "position": "LONG",
   "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
-  "phase_value": -1.779985293362314,
-  "oscillator_value": -0.6592498779296871,
-  "signal_strength": 8.265537317590187,
+  "phase_value": -1.7613094422986009,
+  "oscillator_value": -0.5697498321533203,
+  "signal_strength": 7.840772372905285,
   "confidence": "LOW",
-  "price": 17.170000076293945,
-  "timestamp": "2025-09-03T21:34:03.774239"
+  "price": 16.350000381469727,
+  "timestamp": "2025-09-04T21:34:25.097274"
 }
