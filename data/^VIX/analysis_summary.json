@@ -1,18 +1,18 @@
 {
-  "timestamp": "2025-10-09T21:34:47.191289",
+  "timestamp": "2025-10-10T21:34:32.809869",
   "ticker": "^VIX",
-  "data_points": 5021,
+  "data_points": 5022,
   "latest_signal": {
-    "date": "2025-10-08",
+    "date": "2025-10-09",
     "signal": "HOLD",
     "position": "LONG",
     "phase_quadrant": "Quadrante 2 (Salita -> Picco)",
-    "phase_value": -1.0114389339151213,
-    "oscillator_value": 0.7347500324249268,
-    "signal_strength": 3.6355710363365876,
+    "phase_value": -1.0534780689246934,
+    "oscillator_value": 0.655250072479248,
+    "signal_strength": 3.4509660785171232,
     "confidence": "LOW",
-    "price": 16.299999237060547,
-    "timestamp": "2025-10-09T21:34:45.343773"
+    "price": 16.43000030517578,
+    "timestamp": "2025-10-10T21:34:31.179396"
   },
   "backtest_metrics": {
     "total_return_%": 930.9409800785227,
