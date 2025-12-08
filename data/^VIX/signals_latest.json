@@ -1,12 +1,12 @@
 {
-  "date": "2025-12-04",
-  "signal": "HOLD",
-  "position": "FLAT",
-  "phase_quadrant": "Quadrante 4 (Discesa -> Minimo)",
-  "phase_value": 2.045071766326613,
-  "oscillator_value": -0.1934999942779534,
-  "signal_strength": 0.8251587685137608,
+  "date": "2025-12-05",
+  "signal": "BUY",
+  "position": "LONG",
+  "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
+  "phase_value": -2.966421608183764,
+  "oscillator_value": -1.2690000057220487,
+  "signal_strength": 1.5351654500822505,
   "confidence": "LOW",
-  "price": 15.779999732971191,
-  "timestamp": "2025-12-05T21:37:57.297671"
+  "price": 15.40999984741211,
+  "timestamp": "2025-12-08T21:36:29.884368"
 }
