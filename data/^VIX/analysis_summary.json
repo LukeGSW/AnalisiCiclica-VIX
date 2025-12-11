@@ -1,28 +1,28 @@
 {
-  "timestamp": "2025-12-10T21:42:28.416285",
+  "timestamp": "2025-12-11T21:39:48.214460",
   "ticker": "^VIX",
-  "data_points": 5064,
+  "data_points": 5065,
   "latest_signal": {
-    "date": "2025-12-09",
+    "date": "2025-12-10",
     "signal": "BUY",
     "position": "LONG",
     "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
-    "phase_value": -2.4877114419767135,
-    "oscillator_value": -2.127500057220459,
-    "signal_strength": 2.977961486878713,
+    "phase_value": -2.3899944474688564,
+    "oscillator_value": -2.280499982833863,
+    "signal_strength": 3.237952085143919,
     "confidence": "LOW",
-    "price": 16.93000030517578,
-    "timestamp": "2025-12-10T21:42:26.140764"
+    "price": 15.770000457763672,
+    "timestamp": "2025-12-11T21:39:46.135140"
   },
   "backtest_metrics": {
-    "total_return_%": 551.3457209918582,
-    "max_drawdown_%": 0.9157648635393187,
-    "sharpe_ratio": 1.572131319900614,
-    "sortino_ratio": 4.420922370963459,
-    "calmar_ratio": 36.123620285564776,
-    "total_trades": 26,
-    "win_rate_%": 92.3076923076923,
-    "profit_factor": 85.36018088393519
+    "total_return_%": 550.4074118263225,
+    "max_drawdown_%": 2.6937617477506466,
+    "sharpe_ratio": 1.5504127961811751,
+    "sortino_ratio": 1.6514110912471283,
+    "calmar_ratio": 12.294114263783648,
+    "total_trades": 27,
+    "win_rate_%": 88.88888888888889,
+    "profit_factor": 47.53481092508233
   },
   "cycle_analysis": {
     "dominant_period": 84.0,
