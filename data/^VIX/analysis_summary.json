@@ -1,25 +1,25 @@
 {
-  "timestamp": "2025-12-19T21:38:25.205923",
+  "timestamp": "2025-12-22T21:38:08.725570",
   "ticker": "^VIX",
-  "data_points": 5070,
+  "data_points": 5071,
   "latest_signal": {
-    "date": "2025-12-18",
+    "date": "2025-12-19",
     "signal": "HOLD",
     "position": "LONG",
     "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
-    "phase_value": -2.1285133165617323,
-    "oscillator_value": -1.8807499408721924,
-    "signal_strength": 0.9574729422720466,
+    "phase_value": -2.1176382541724497,
+    "oscillator_value": -1.875499916076663,
+    "signal_strength": 0.9055722915640836,
     "confidence": "LOW",
-    "price": 16.8700008392334,
-    "timestamp": "2025-12-19T21:38:23.202658"
+    "price": 14.90999984741211,
+    "timestamp": "2025-12-22T21:38:06.833309"
   },
   "backtest_metrics": {
     "total_return_%": 539.6109745034429,
     "max_drawdown_%": 2.6937617477506466,
-    "sharpe_ratio": 1.5336516975282941,
-    "sortino_ratio": 2.0014598604581235,
-    "calmar_ratio": 12.186687282245602,
+    "sharpe_ratio": 1.533143414247111,
+    "sortino_ratio": 2.0001448408389,
+    "calmar_ratio": 12.178680260378163,
     "total_trades": 27,
     "win_rate_%": 85.18518518518519,
     "profit_factor": 33.524406263291915
