@@ -1,12 +1,12 @@
 {
-  "date": "2026-01-12",
+  "date": "2026-01-13",
   "signal": "HOLD",
   "position": "LONG",
   "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
-  "phase_value": -2.0148178088505273,
-  "oscillator_value": -2.228500151634215,
-  "signal_strength": 13.232307776688833,
+  "phase_value": -1.9851142298003353,
+  "oscillator_value": -2.0122501611709573,
+  "signal_strength": 12.85388595187298,
   "confidence": "LOW",
-  "price": 15.119999885559082,
-  "timestamp": "2026-01-13T21:41:45.585442"
+  "price": 15.979999542236328,
+  "timestamp": "2026-01-14T21:42:10.763229"
 }
