@@ -128,7 +128,7 @@ def load_data_from_path(ticker_path):
     return data
 
 
-def run_analysis_for_ticker(ticker, lookback_years=10):
+def run_analysis_for_ticker(ticker, lookback_years=20):
     """Run the complete analysis pipeline for a specific ticker."""
     try:
         with st.spinner(f'🔄 Running analysis for {ticker} with {lookback_years} years lookback...'):
