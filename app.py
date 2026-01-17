@@ -2,7 +2,7 @@
 
 """
 Streamlit Dashboard for Kriterion Quant Trading System
-Enhanced UI/UX Version - Professional Grade
+Enhanced UI/UX Version - Professional Dark Theme
 """
 
 import streamlit as st
@@ -33,109 +33,131 @@ st.set_page_config(
 )
 
 # ============================================================================ #
+#                           DARK THEME COLOR PALETTE                            #
+# ============================================================================ #
+COLORS = {
+    # Backgrounds
+    'bg_primary': '#0f172a',
+    'bg_secondary': '#1e293b',
+    'bg_tertiary': '#334155',
+    
+    # Text
+    'text_primary': '#e2e8f0',
+    'text_secondary': '#94a3b8',
+    'text_muted': '#64748b',
+    
+    # Accent colors
+    'primary': '#3b82f6',
+    'primary_dark': '#2563eb',
+    'success': '#10b981',
+    'success_dark': '#059669',
+    'danger': '#ef4444',
+    'danger_dark': '#dc2626',
+    'warning': '#f59e0b',
+    'warning_dark': '#d97706',
+    
+    # Chart specific
+    'chart_grid': '#334155',
+    'chart_price': '#3b82f6',
+    'chart_bullish': '#10b981',
+    'chart_bearish': '#ef4444',
+    
+    # Borders
+    'border': '#334155',
+    'border_light': '#475569',
+}
+
+# ============================================================================ #
 #                           PROFESSIONAL CSS STYLING                            #
 # ============================================================================ #
-st.markdown("""
+st.markdown(f"""
 <style>
     /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     
-    /* Global Styles */
-    .stApp {
+    /* Global Dark Theme */
+    .stApp {{
         font-family: 'Inter', sans-serif;
-    }
+        background-color: {COLORS['bg_primary']};
+    }}
     
     /* Main Header Styling */
-    .main-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    .main-header {{
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e3a5f 100%);
         padding: 2rem 2.5rem;
         border-radius: 16px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.1);
-    }
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        border: 1px solid {COLORS['border']};
+    }}
     
-    .main-header h1 {
+    .main-header h1 {{
         color: #ffffff;
         font-size: 2.2rem;
         font-weight: 700;
         margin: 0;
         letter-spacing: -0.5px;
-    }
+    }}
     
-    .main-header p {
-        color: rgba(255,255,255,0.7);
+    .main-header p {{
+        color: {COLORS['text_secondary']};
         font-size: 1rem;
         margin-top: 0.5rem;
-    }
+    }}
     
-    /* Status Cards */
-    .status-card {
-        background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    /* Status Cards - Dark Theme */
+    .status-card {{
+        background: linear-gradient(145deg, {COLORS['bg_secondary']} 0%, {COLORS['bg_primary']} 100%);
         border-radius: 16px;
         padding: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        border: 1px solid {COLORS['border']};
         transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+    }}
     
-    .status-card:hover {
+    .status-card:hover {{
         transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-    }
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        border-color: {COLORS['border_light']};
+    }}
     
-    .status-card-bullish {
-        background: linear-gradient(145deg, #d4edda 0%, #c3e6cb 100%);
-        border-left: 4px solid #28a745;
-    }
-    
-    .status-card-bearish {
-        background: linear-gradient(145deg, #f8d7da 0%, #f5c6cb 100%);
-        border-left: 4px solid #dc3545;
-    }
-    
-    .status-card-neutral {
-        background: linear-gradient(145deg, #fff3cd 0%, #ffeeba 100%);
-        border-left: 4px solid #ffc107;
-    }
-    
-    /* Metric Cards Enhancement */
-    [data-testid="metric-container"] {
-        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #e2e8f0;
+    /* Metric Cards Enhancement - Dark */
+    [data-testid="metric-container"] {{
+        background: linear-gradient(145deg, {COLORS['bg_secondary']} 0%, {COLORS['bg_primary']} 100%);
+        border: 1px solid {COLORS['border']};
         padding: 1.25rem;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         transition: all 0.2s ease;
-    }
+    }}
     
-    [data-testid="metric-container"]:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        border-color: #cbd5e1;
-    }
+    [data-testid="metric-container"]:hover {{
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        border-color: {COLORS['border_light']};
+    }}
     
-    [data-testid="metric-container"] > div:first-child {
-        color: #64748b !important;
+    [data-testid="metric-container"] > div:first-child {{
+        color: {COLORS['text_secondary']} !important;
         font-size: 0.85rem !important;
         font-weight: 600 !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-    }
+    }}
     
-    [data-testid="metric-container"] > div:nth-child(2) {
-        color: #1e293b !important;
+    [data-testid="metric-container"] > div:nth-child(2) {{
+        color: {COLORS['text_primary']} !important;
         font-size: 1.75rem !important;
         font-weight: 700 !important;
         font-family: 'JetBrains Mono', monospace;
-    }
+    }}
     
-    [data-testid="metric-container"] > div:nth-child(3) {
-        color: #64748b !important;
+    [data-testid="metric-container"] > div:nth-child(3) {{
+        color: {COLORS['text_muted']} !important;
         font-size: 0.8rem !important;
-    }
+    }}
     
     /* Signal Badge Styles */
-    .signal-badge {
+    .signal-badge {{
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -145,109 +167,111 @@ st.markdown("""
         font-size: 1.1rem;
         text-transform: uppercase;
         letter-spacing: 1px;
-    }
+    }}
     
-    .signal-buy {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    .signal-buy {{
+        background: linear-gradient(135deg, {COLORS['success']} 0%, {COLORS['success_dark']} 100%);
         color: white;
         box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-    }
+    }}
     
-    .signal-sell {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    .signal-sell {{
+        background: linear-gradient(135deg, {COLORS['danger']} 0%, {COLORS['danger_dark']} 100%);
         color: white;
         box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-    }
+    }}
     
-    .signal-hold {
+    .signal-hold {{
         background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
         color: white;
         box-shadow: 0 4px 15px rgba(107, 114, 128, 0.4);
-    }
+    }}
     
     /* Position Badge */
-    .position-long {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    .position-long {{
+        background: linear-gradient(135deg, {COLORS['primary']} 0%, {COLORS['primary_dark']} 100%);
         color: white;
         padding: 0.5rem 1rem;
         border-radius: 8px;
         font-weight: 600;
         display: inline-block;
-    }
+    }}
     
-    .position-flat {
-        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    .position-flat {{
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
         color: white;
         padding: 0.5rem 1rem;
         border-radius: 8px;
         font-weight: 600;
         display: inline-block;
-    }
+    }}
     
-    /* Info Box Styling */
-    .info-box {
-        background: linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 1px solid #bae6fd;
+    /* Info Box Styling - Dark */
+    .info-box {{
+        background: linear-gradient(145deg, {COLORS['bg_secondary']} 0%, {COLORS['bg_tertiary']} 100%);
+        border: 1px solid {COLORS['border']};
         border-radius: 12px;
         padding: 1.25rem;
         margin: 1rem 0;
-    }
+    }}
     
-    .info-box-warning {
-        background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
-        border: 1px solid #fcd34d;
-    }
+    .info-box-warning {{
+        background: linear-gradient(145deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }}
     
-    .info-box-success {
-        background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%);
-        border: 1px solid #6ee7b7;
-    }
+    .info-box-success {{
+        background: linear-gradient(145deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }}
     
-    /* Tabs Styling */
-    .stTabs [data-baseweb="tab-list"] {
+    /* Tabs Styling - Dark */
+    .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
-        background: #f1f5f9;
+        background: {COLORS['bg_secondary']};
         padding: 0.5rem;
         border-radius: 12px;
-    }
+        border: 1px solid {COLORS['border']};
+    }}
     
-    .stTabs [data-baseweb="tab"] {
+    .stTabs [data-baseweb="tab"] {{
         border-radius: 8px;
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        color: #64748b;
+        color: {COLORS['text_secondary']};
         background: transparent;
-    }
+    }}
     
-    .stTabs [aria-selected="true"] {
-        background: white !important;
-        color: #1e293b !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
+    .stTabs [aria-selected="true"] {{
+        background: {COLORS['bg_tertiary']} !important;
+        color: {COLORS['text_primary']} !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }}
     
-    /* Sidebar Styling */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    }
+    /* Sidebar Styling - Dark */
+    [data-testid="stSidebar"] {{
+        background: linear-gradient(180deg, {COLORS['bg_secondary']} 0%, {COLORS['bg_primary']} 100%);
+        border-right: 1px solid {COLORS['border']};
+    }}
     
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #e2e8f0;
-    }
+    [data-testid="stSidebar"] .stMarkdown {{
+        color: {COLORS['text_primary']};
+    }}
     
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3 {
-        color: #f1f5f9 !important;
-    }
+    [data-testid="stSidebar"] h3 {{
+        color: {COLORS['text_primary']} !important;
+    }}
     
     [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stSlider label {
-        color: #cbd5e1 !important;
-    }
+    [data-testid="stSidebar"] .stSlider label {{
+        color: {COLORS['text_secondary']} !important;
+    }}
     
     /* Button Styling */
-    .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    .stButton > button {{
+        background: linear-gradient(135deg, {COLORS['primary']} 0%, {COLORS['primary_dark']} 100%);
         color: white;
         border: none;
         padding: 0.75rem 2rem;
@@ -256,112 +280,104 @@ st.markdown("""
         font-size: 0.95rem;
         transition: all 0.3s ease;
         box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-    }
+    }}
     
-    .stButton > button:hover {
+    .stButton > button:hover {{
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-    }
+    }}
     
     /* Download Button */
-    .stDownloadButton > button {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    .stDownloadButton > button {{
+        background: linear-gradient(135deg, {COLORS['success']} 0%, {COLORS['success_dark']} 100%);
         box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    }
+    }}
     
-    /* Data Table Styling */
-    .stDataFrame {
+    /* Data Table Styling - Dark */
+    .stDataFrame {{
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }}
     
     /* Progress Indicator */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
-    }
-    
-    /* Expander Styling */
-    .streamlit-expanderHeader {
-        background: #f8fafc;
-        border-radius: 8px;
-        font-weight: 600;
-    }
+    .stProgress > div > div {{
+        background: linear-gradient(90deg, {COLORS['primary']} 0%, #8b5cf6 100%);
+    }}
     
     /* Custom Divider */
-    .custom-divider {
+    .custom-divider {{
         height: 2px;
-        background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+        background: linear-gradient(90deg, transparent 0%, {COLORS['border']} 50%, transparent 100%);
         margin: 2rem 0;
-    }
+    }}
     
     /* Confidence Indicator */
-    .confidence-high {
-        color: #10b981;
+    .confidence-high {{
+        color: {COLORS['success']};
         font-weight: 700;
-    }
+    }}
     
-    .confidence-medium {
-        color: #f59e0b;
+    .confidence-medium {{
+        color: {COLORS['warning']};
         font-weight: 700;
-    }
+    }}
     
-    .confidence-low {
-        color: #ef4444;
+    .confidence-low {{
+        color: {COLORS['danger']};
         font-weight: 700;
-    }
+    }}
     
     /* Phase Quadrant Colors */
-    .quadrant-bullish {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #065f46;
+    .quadrant-bullish {{
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%);
+        color: {COLORS['success']};
         padding: 0.5rem 1rem;
         border-radius: 8px;
         font-weight: 600;
-    }
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }}
     
-    .quadrant-bearish {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        color: #991b1b;
+    .quadrant-bearish {{
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+        color: {COLORS['danger']};
         padding: 0.5rem 1rem;
         border-radius: 8px;
         font-weight: 600;
-    }
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }}
     
     /* Footer */
-    .footer {
+    .footer {{
         text-align: center;
         padding: 2rem;
-        color: #64748b;
+        color: {COLORS['text_muted']};
         font-size: 0.85rem;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid {COLORS['border']};
         margin-top: 3rem;
-    }
+    }}
+    
+    /* General text color fix */
+    .stMarkdown, p, span {{
+        color: {COLORS['text_primary']};
+    }}
+    
+    h1, h2, h3, h4, h5, h6 {{
+        color: {COLORS['text_primary']} !important;
+    }}
+    
+    /* Selectbox and inputs dark theme */
+    .stSelectbox > div > div {{
+        background-color: {COLORS['bg_secondary']};
+        border-color: {COLORS['border']};
+    }}
+    
+    .stDateInput > div > div {{
+        background-color: {COLORS['bg_secondary']};
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================================ #
-#                              COLOR PALETTE                                    #
-# ============================================================================ #
-COLORS = {
-    'primary': '#3b82f6',
-    'primary_dark': '#2563eb',
-    'success': '#10b981',
-    'success_dark': '#059669',
-    'danger': '#ef4444',
-    'danger_dark': '#dc2626',
-    'warning': '#f59e0b',
-    'neutral': '#64748b',
-    'background': '#f8fafc',
-    'text_primary': '#1e293b',
-    'text_secondary': '#64748b',
-    'chart_bullish': '#10b981',
-    'chart_bearish': '#ef4444',
-    'chart_price': '#3b82f6',
-    'chart_ma_fast': '#8b5cf6',
-    'chart_ma_slow': '#f59e0b',
-    'chart_grid': '#e2e8f0',
-}
 
 # ============================================================================ #
 #                           HELPER FUNCTIONS                                    #
@@ -373,6 +389,7 @@ def get_available_tickers(path='data'):
         return []
     tickers = [name for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))]
     return sorted(tickers)
+
 
 @st.cache_data(ttl=600)
 def load_data_from_path(ticker_path):
@@ -450,9 +467,14 @@ def run_analysis_for_ticker(ticker, lookback_years=20):
             monte_carlo_results = analyzer.run_monte_carlo_significance_test(df_analyzed['oscillator'])
             
             summary = {
-                'timestamp': datetime.now().isoformat(), 'ticker': ticker,
-                'lookback_years': lookback_years, 'data_points': len(df_signals),
-                'date_range': {'start': df_signals.index[0].strftime('%Y-%m-%d'), 'end': df_signals.index[-1].strftime('%Y-%m-%d')},
+                'timestamp': datetime.now().isoformat(), 
+                'ticker': ticker,
+                'lookback_years': lookback_years, 
+                'data_points': len(df_signals),
+                'date_range': {
+                    'start': df_signals.index[0].strftime('%Y-%m-%d'), 
+                    'end': df_signals.index[-1].strftime('%Y-%m-%d')
+                },
                 'latest_signal': latest_signal,
                 'cycle_analysis': {
                     'dominant_period': float(spectral_results['dominant_period']) if spectral_results['dominant_period'] else None,
@@ -503,11 +525,11 @@ def load_data():
 
 
 # ============================================================================ #
-#                           CHART FUNCTIONS                                     #
+#                           CHART FUNCTIONS - DARK THEME                        #
 # ============================================================================ #
 
 def create_price_chart(df):
-    """Create professional interactive price chart with signals"""
+    """Create professional interactive price chart with signals - Dark Theme"""
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
@@ -528,13 +550,13 @@ def create_price_chart(df):
             name='Close Price',
             line=dict(color=COLORS['chart_price'], width=2),
             fill='tozeroy',
-            fillcolor='rgba(59, 130, 246, 0.1)',
+            fillcolor='rgba(59, 130, 246, 0.15)',
             hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<extra></extra>'
         ), 
         row=1, col=1
     )
     
-    # Buy signals with better visibility
+    # Buy signals
     buy_signals = df[df['signal'] == 'BUY']
     if not buy_signals.empty:
         fig.add_trace(
@@ -547,14 +569,14 @@ def create_price_chart(df):
                     symbol='triangle-up',
                     size=14,
                     color=COLORS['success'],
-                    line=dict(color='white', width=2)
+                    line=dict(color=COLORS['bg_primary'], width=2)
                 ),
                 hovertemplate='<b>BUY SIGNAL</b><br>Date: %{x}<br>Price: $%{y:.2f}<extra></extra>'
             ), 
             row=1, col=1
         )
     
-    # Sell signals with better visibility
+    # Sell signals
     sell_signals = df[df['signal'] == 'SELL']
     if not sell_signals.empty:
         fig.add_trace(
@@ -567,7 +589,7 @@ def create_price_chart(df):
                     symbol='triangle-down',
                     size=14,
                     color=COLORS['danger'],
-                    line=dict(color='white', width=2)
+                    line=dict(color=COLORS['bg_primary'], width=2)
                 ),
                 hovertemplate='<b>SELL SIGNAL</b><br>Date: %{x}<br>Price: $%{y:.2f}<extra></extra>'
             ), 
@@ -583,12 +605,12 @@ def create_price_chart(df):
                 y=df['oscillator'], 
                 name='Oscillator',
                 marker_color=colors,
-                opacity=0.7,
+                opacity=0.8,
                 hovertemplate='<b>Oscillator:</b> %{y:.4f}<extra></extra>'
             ), 
             row=2, col=1
         )
-        fig.add_hline(y=0, row=2, col=1, line_dash="solid", line_color=COLORS['neutral'], line_width=1)
+        fig.add_hline(y=0, row=2, col=1, line_dash="solid", line_color=COLORS['text_muted'], line_width=1)
     
     # Phase indicator with quadrant shading
     if 'phase' in df.columns:
@@ -597,7 +619,7 @@ def create_price_chart(df):
                 x=df.index, 
                 y=df['phase'], 
                 name='Phase',
-                line=dict(color=COLORS['chart_ma_fast'], width=2),
+                line=dict(color='#8b5cf6', width=2),
                 hovertemplate='<b>Phase:</b> %{y:.2f} rad<extra></extra>'
             ), 
             row=3, col=1
@@ -608,9 +630,9 @@ def create_price_chart(df):
             fig.add_hline(
                 y=y_val, row=3, col=1, 
                 line_dash="dot", 
-                line_color=COLORS['chart_grid'], 
+                line_color=COLORS['text_muted'], 
                 line_width=1,
-                opacity=0.7
+                opacity=0.5
             )
         
         # Add bullish/bearish zones
@@ -625,7 +647,7 @@ def create_price_chart(df):
             line_width=0
         )
     
-    # Update layout with professional styling
+    # Update layout - DARK THEME
     fig.update_layout(
         height=750,
         showlegend=True,
@@ -635,53 +657,48 @@ def create_price_chart(df):
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor=COLORS['chart_grid'],
+            bgcolor=COLORS['bg_secondary'],
+            bordercolor=COLORS['border'],
             borderwidth=1,
-            font=dict(size=11)
+            font=dict(size=11, color=COLORS['text_primary'])
         ),
         hovermode='x unified',
-        template='plotly_white',
+        template='plotly_dark',
         margin=dict(l=60, r=40, t=80, b=40),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(248,250,252,0.5)',
+        paper_bgcolor=COLORS['bg_primary'],
+        plot_bgcolor=COLORS['bg_secondary'],
         font=dict(family="Inter, sans-serif", color=COLORS['text_primary'])
     )
     
-    # Update axes styling
+    # Update all axes - DARK THEME
     fig.update_xaxes(
-        title_text="Date", 
-        row=3, col=1,
-        gridcolor=COLORS['chart_grid'],
-        showgrid=True,
-        zeroline=False
-    )
-    fig.update_yaxes(
-        title_text="Price ($)", 
-        row=1, col=1,
         gridcolor=COLORS['chart_grid'],
         showgrid=True,
         zeroline=False,
-        tickformat='$,.2f'
+        title_font=dict(color=COLORS['text_secondary']),
+        tickfont=dict(color=COLORS['text_secondary'])
     )
+    
+    fig.update_xaxes(title_text="Date", row=3, col=1)
+    
     fig.update_yaxes(
-        title_text="Oscillator", 
-        row=2, col=1,
         gridcolor=COLORS['chart_grid'],
         showgrid=True,
-        zeroline=False
+        zeroline=False,
+        title_font=dict(color=COLORS['text_secondary']),
+        tickfont=dict(color=COLORS['text_secondary'])
     )
+    
+    fig.update_yaxes(title_text="Price ($)", row=1, col=1, tickformat='$,.2f')
+    fig.update_yaxes(title_text="Oscillator", row=2, col=1)
     fig.update_yaxes(
         title_text="Phase (rad)", 
         row=3, col=1,
-        gridcolor=COLORS['chart_grid'],
-        showgrid=True,
-        zeroline=False,
         tickvals=[-np.pi, -np.pi/2, 0, np.pi/2, np.pi],
         ticktext=['-π', '-π/2', '0', 'π/2', 'π']
     )
     
-    # Update subplot titles styling
+    # Update subplot titles - DARK THEME
     for annotation in fig['layout']['annotations']:
         annotation['font'] = dict(size=13, color=COLORS['text_primary'], family="Inter, sans-serif")
     
@@ -689,7 +706,7 @@ def create_price_chart(df):
 
 
 def create_equity_chart(df_results: pd.DataFrame):
-    """Create professional equity curve chart from backtest results."""
+    """Create professional equity curve chart - Dark Theme"""
     fig = go.Figure()
     
     if 'equity' in df_results.columns:
@@ -711,11 +728,12 @@ def create_equity_chart(df_results: pd.DataFrame):
                 x=df_results.index, 
                 y=df_results['benchmark_equity'], 
                 name='Buy & Hold',
-                line=dict(color=COLORS['neutral'], width=2, dash='dash'),
+                line=dict(color=COLORS['text_muted'], width=2, dash='dash'),
                 hovertemplate='<b>Buy & Hold</b><br>Date: %{x}<br>Value: $%{y:,.2f}<extra></extra>'
             )
         )
     
+    # DARK THEME layout
     fig.update_layout(
         title=dict(
             text='<b>Equity Curve Comparison</b>',
@@ -726,31 +744,45 @@ def create_equity_chart(df_results: pd.DataFrame):
         yaxis_title='Portfolio Value ($)',
         height=400,
         hovermode='x unified',
-        template='plotly_white',
+        template='plotly_dark',
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor=COLORS['chart_grid'],
-            borderwidth=1
+            bgcolor=COLORS['bg_secondary'],
+            bordercolor=COLORS['border'],
+            borderwidth=1,
+            font=dict(color=COLORS['text_primary'])
         ),
         margin=dict(l=60, r=40, t=80, b=40),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(248,250,252,0.5)',
+        paper_bgcolor=COLORS['bg_primary'],
+        plot_bgcolor=COLORS['bg_secondary'],
         font=dict(family="Inter, sans-serif", color=COLORS['text_primary'])
     )
     
-    fig.update_xaxes(gridcolor=COLORS['chart_grid'], showgrid=True, zeroline=False)
-    fig.update_yaxes(gridcolor=COLORS['chart_grid'], showgrid=True, zeroline=False, tickformat='$,.0f')
+    fig.update_xaxes(
+        gridcolor=COLORS['chart_grid'], 
+        showgrid=True, 
+        zeroline=False, 
+        title_font=dict(color=COLORS['text_secondary']), 
+        tickfont=dict(color=COLORS['text_secondary'])
+    )
+    fig.update_yaxes(
+        gridcolor=COLORS['chart_grid'], 
+        showgrid=True, 
+        zeroline=False, 
+        tickformat='$,.0f', 
+        title_font=dict(color=COLORS['text_secondary']), 
+        tickfont=dict(color=COLORS['text_secondary'])
+    )
     
     return fig
 
 
 def create_phase_distribution_chart(df):
-    """Create professional phase distribution pie chart."""
+    """Create professional phase distribution pie chart - Dark Theme"""
     phase_counts = df['phase_quadrant'].value_counts()
     
     # Define colors for each quadrant
@@ -766,13 +798,14 @@ def create_phase_distribution_chart(df):
             labels=[str(l).split('(')[1].replace(')', '') if '(' in str(l) else str(l) for l in phase_counts.index],
             values=phase_counts.values.tolist(),
             hole=0.5,
-            marker=dict(colors=colors, line=dict(color='white', width=2)),
+            marker=dict(colors=colors, line=dict(color=COLORS['bg_primary'], width=3)),
             textinfo='percent+label',
-            textfont=dict(size=11),
+            textfont=dict(size=11, color=COLORS['text_primary']),
             hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
         )
     ])
     
+    # DARK THEME layout
     fig.update_layout(
         title=dict(
             text='<b>Cycle Phase Distribution</b>',
@@ -782,7 +815,7 @@ def create_phase_distribution_chart(df):
         height=320,
         showlegend=False,
         margin=dict(l=20, r=20, t=60, b=20),
-        paper_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor=COLORS['bg_primary'],
         font=dict(family="Inter, sans-serif", color=COLORS['text_primary']),
         annotations=[
             dict(
@@ -799,18 +832,25 @@ def create_phase_distribution_chart(df):
 
 
 def create_signal_strength_gauge(strength_value):
-    """Create a gauge chart for signal strength."""
+    """Create a gauge chart for signal strength - Dark Theme"""
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=strength_value,
         domain={'x': [0, 1], 'y': [0, 1]},
-        number={'suffix': '%', 'font': {'size': 28, 'color': COLORS['text_primary'], 'family': 'JetBrains Mono'}},
+        number={
+            'suffix': '%', 
+            'font': {'size': 28, 'color': COLORS['text_primary'], 'family': 'JetBrains Mono'}
+        },
         gauge={
-            'axis': {'range': [0, 100], 'tickcolor': COLORS['text_secondary']},
+            'axis': {
+                'range': [0, 100], 
+                'tickcolor': COLORS['text_secondary'],
+                'tickfont': {'color': COLORS['text_secondary']}
+            },
             'bar': {'color': COLORS['primary']},
-            'bgcolor': 'white',
+            'bgcolor': COLORS['bg_tertiary'],
             'borderwidth': 2,
-            'bordercolor': COLORS['chart_grid'],
+            'bordercolor': COLORS['border'],
             'steps': [
                 {'range': [0, 30], 'color': 'rgba(239, 68, 68, 0.2)'},
                 {'range': [30, 70], 'color': 'rgba(245, 158, 11, 0.2)'},
@@ -824,15 +864,20 @@ def create_signal_strength_gauge(strength_value):
         }
     ))
     
+    # DARK THEME layout
     fig.update_layout(
         height=200,
         margin=dict(l=20, r=20, t=30, b=20),
-        paper_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor=COLORS['bg_primary'],
         font=dict(family="Inter, sans-serif", color=COLORS['text_primary'])
     )
     
     return fig
 
+
+# ============================================================================ #
+#                           BADGE RENDER FUNCTIONS                              #
+# ============================================================================ #
 
 def render_signal_badge(signal):
     """Render a styled signal badge."""
@@ -916,8 +961,8 @@ def main():
         
         st.markdown("### 📊 Current Settings")
         st.markdown(f"""
-        <div class="info-box" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
-            <p style="color: #e2e8f0; margin: 0; font-size: 0.9rem;">
+        <div class="info-box">
+            <p style="color: {COLORS['text_primary']}; margin: 0; font-size: 0.9rem;">
             <b>Lookback:</b> {current_lookback} years<br>
             <b>Range:</b> {date_range_info.get('start', 'N/A')} → {date_range_info.get('end', 'N/A')}<br>
             <b>Fast MA:</b> {Config.FAST_MA_WINDOW} days<br>
@@ -1007,32 +1052,32 @@ def main():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                signal_color = "#10b981" if latest['signal'] == 'BUY' else "#ef4444" if latest['signal'] == 'SELL' else "#64748b"
+                signal_color = COLORS['success'] if latest['signal'] == 'BUY' else COLORS['danger'] if latest['signal'] == 'SELL' else COLORS['text_muted']
                 st.markdown(f"""
                 <div class="status-card" style="border-left: 4px solid {signal_color};">
-                    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">LAST SIGNAL</p>
+                    <p style="color: {COLORS['text_secondary']}; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">LAST SIGNAL</p>
                     {render_signal_badge(latest['signal'])}
-                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 0.75rem;">📅 {latest['date']}</p>
+                    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-top: 0.75rem;">📅 {latest['date']}</p>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col2:
                 st.markdown(f"""
                 <div class="status-card">
-                    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">POSITION</p>
+                    <p style="color: {COLORS['text_secondary']}; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">POSITION</p>
                     {render_position_badge(latest['position'])}
-                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 0.75rem;">💵 ${float(latest['price']):.2f}</p>
+                    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-top: 0.75rem;">💵 ${float(latest['price']):.2f}</p>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col3:
                 st.markdown(f"""
                 <div class="status-card">
-                    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">SIGNAL STRENGTH</p>
-                    <p style="font-size: 1.75rem; font-weight: 700; color: #1e293b; font-family: 'JetBrains Mono', monospace; margin: 0;">
-                        {float(latest['signal_strength']):.0f}<span style="font-size: 1rem; color: #64748b;">/100</span>
+                    <p style="color: {COLORS['text_secondary']}; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">SIGNAL STRENGTH</p>
+                    <p style="font-size: 1.75rem; font-weight: 700; color: {COLORS['text_primary']}; font-family: 'JetBrains Mono', monospace; margin: 0;">
+                        {float(latest['signal_strength']):.0f}<span style="font-size: 1rem; color: {COLORS['text_muted']};">/100</span>
                     </p>
-                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 0.5rem;">{render_confidence_badge(latest['confidence'])}</p>
+                    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-top: 0.5rem;">{render_confidence_badge(latest['confidence'])}</p>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -1042,9 +1087,9 @@ def main():
                 quadrant_class = 'quadrant-bullish' if is_bullish else 'quadrant-bearish'
                 st.markdown(f"""
                 <div class="status-card">
-                    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">CYCLE PHASE</p>
+                    <p style="color: {COLORS['text_secondary']}; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">CYCLE PHASE</p>
                     <span class="{quadrant_class}">{quadrant_text}</span>
-                    <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 0.75rem;">📐 {float(latest['phase_value']):.2f} rad</p>
+                    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-top: 0.75rem;">📐 {float(latest['phase_value']):.2f} rad</p>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -1054,13 +1099,13 @@ def main():
             col_left, col_right = st.columns([2, 1])
             
             with col_left:
-                st.markdown("### 📍 Signal Details")
+                st.markdown(f"### 📍 Signal Details")
                 
                 detail_col1, detail_col2 = st.columns(2)
                 with detail_col1:
                     st.markdown(f"""
                     <div class="info-box">
-                        <p style="margin: 0; color: #334155;">
+                        <p style="margin: 0; color: {COLORS['text_primary']};">
                         <b>Oscillator Value:</b> {float(latest['oscillator_value']):.4f}<br>
                         <b>Phase Quadrant:</b> {latest['phase_quadrant']}<br>
                         <b>Generated:</b> {latest['timestamp'][:19]}
@@ -1070,27 +1115,27 @@ def main():
                 
                 with detail_col2:
                     if latest['signal'] == 'BUY':
-                        st.markdown("""
+                        st.markdown(f"""
                         <div class="info-box info-box-success">
-                            <p style="margin: 0; color: #065f46; font-weight: 600;">
+                            <p style="margin: 0; color: {COLORS['success']}; font-weight: 600;">
                             🎯 <b>Recommended Action</b><br>
                             Enter Long Position (Hedging Exposure)
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
                     elif latest['signal'] == 'SELL':
-                        st.markdown("""
+                        st.markdown(f"""
                         <div class="info-box info-box-warning">
-                            <p style="margin: 0; color: #92400e; font-weight: 600;">
+                            <p style="margin: 0; color: {COLORS['warning']}; font-weight: 600;">
                             🎯 <b>Recommended Action</b><br>
                             Exit Long Position (Remove Hedge)
                             </p>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
-                        st.markdown("""
+                        st.markdown(f"""
                         <div class="info-box">
-                            <p style="margin: 0; color: #334155; font-weight: 600;">
+                            <p style="margin: 0; color: {COLORS['text_primary']}; font-weight: 600;">
                             🎯 <b>Recommended Action</b><br>
                             Maintain Current Position
                             </p>
@@ -1128,9 +1173,9 @@ def main():
                 with stat_col1:
                     st.metric("Total Signals", total_signals)
                 with stat_col2:
-                    st.metric("Buy Signals", buy_signals_count, delta=None)
+                    st.metric("Buy Signals", buy_signals_count)
                 with stat_col3:
-                    st.metric("Sell Signals", sell_signals_count, delta=None)
+                    st.metric("Sell Signals", sell_signals_count)
                 
                 # Time in position
                 if 'position' in df_filtered.columns:
@@ -1168,9 +1213,9 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("""
-                <div class="info-box" style="background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%); border-color: #93c5fd;">
-                    <h4 style="color: #1e40af; margin-top: 0;">📘 In-Sample Performance</h4>
+                st.markdown(f"""
+                <div class="info-box" style="border-left: 4px solid {COLORS['primary']};">
+                    <h4 style="color: {COLORS['primary']}; margin-top: 0;">📘 In-Sample Performance</h4>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1185,9 +1230,9 @@ def main():
                     st.metric("Total Trades", f"{int(is_metrics.get('total_trades', 0))}")
             
             with col2:
-                st.markdown("""
-                <div class="info-box info-box-success">
-                    <h4 style="color: #065f46; margin-top: 0;">📗 Out-of-Sample Performance</h4>
+                st.markdown(f"""
+                <div class="info-box info-box-success" style="border-left: 4px solid {COLORS['success']};">
+                    <h4 style="color: {COLORS['success']}; margin-top: 0;">📗 Out-of-Sample Performance</h4>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1201,7 +1246,7 @@ def main():
                     st.metric("Profit Factor", f"{float(oos_metrics.get('profit_factor', 0)):.2f}")
                     st.metric("Total Trades", f"{int(oos_metrics.get('total_trades', 0))}")
         else:
-            st.markdown("*Walk-Forward results not available. Showing simple backtest metrics:*")
+            st.markdown(f"*Walk-Forward results not available. Showing simple backtest metrics:*")
             metrics = backtest_visual_output.get('metrics', {})
             
             col1, col2, col3 = st.columns(3)
@@ -1271,7 +1316,7 @@ def main():
     <div class="footer">
         <p><b>Kriterion Quant Trading System</b> • Cycle-Based VIX Hedging Strategy</p>
         <p>Last updated: {data.get('summary', {}).get('timestamp', 'Unknown')[:19]}</p>
-        <p style="font-size: 0.75rem; color: #94a3b8;">
+        <p style="font-size: 0.75rem; color: {COLORS['text_muted']};">
             ⚠️ This is a research tool. Past performance does not guarantee future results.
         </p>
     </div>
