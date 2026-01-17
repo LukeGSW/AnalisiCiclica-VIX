@@ -650,13 +650,14 @@ def create_price_chart(df):
     
     # Update axes styling
     fig.update_xaxes(
-        title_text="Date", 
-        row=3, col=1,
-        gridcolor='#334155',
-        showgrid=True,
-        zeroline=False,
-        title_font=dict(color="#94a3b8"),
-        tickfont=dict(color="#94a3b8")
+    title_text="Date", 
+    row=3, col=1,
+    gridcolor='#334155',
+    showgrid=True,
+    zeroline=False,
+    title_font=dict(color="#94a3b8"),
+    tickfont=dict(color="#94a3b8")
+)
 )
     )
     fig.update_yaxes(
