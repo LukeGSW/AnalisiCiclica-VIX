@@ -15,9 +15,6 @@ from config import Config
 class SignalGenerator:
     """Class to generate trading signals from cycle analysis"""
     
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 1 >>>                    #
-    # ================================================================= #
     def __init__(self, data_path: str):
         """
         Initialize the signal generator
@@ -30,7 +27,7 @@ class SignalGenerator:
         self.data_path = data_path
         self.last_signal = None
         self.signal_history = []
-    # ================================================================= #
+
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Generate trading signals based on cycle phase
@@ -84,6 +81,7 @@ class SignalGenerator:
     def _calculate_signal_strength(self, df: pd.DataFrame) -> pd.Series:
         """
         Calculate signal strength based on amplitude and phase stability
+        CORRECTED: Uses expanding window for normalization to avoid look-ahead bias.
         
         Parameters
         ----------
@@ -95,17 +93,28 @@ class SignalGenerator:
         pd.Series
             Signal strength values (0-100)
         """
-        strength = pd.Series(50.0, index=df.index)  # Default strength
+        strength = pd.Series(50.0, index=df.index)
         
         if 'amplitude' in df.columns:
-            # Normalize amplitude to 0-100 scale
-            amp_norm = (df['amplitude'] - df['amplitude'].min()) / (df['amplitude'].max() - df['amplitude'].min())
+            # FIX: Use expanding min/max instead of global min/max
+            # This ensures we only compare to past history, not future data
+            expanding_min = df['amplitude'].expanding(min_periods=50).min()
+            expanding_max = df['amplitude'].expanding(min_periods=50).max()
+            
+            # Avoid division by zero
+            denom = expanding_max - expanding_min
+            denom = denom.replace(0, 1)  # Replace 0 with 1 to avoid NaN
+            
+            amp_norm = (df['amplitude'] - expanding_min) / denom
             strength = amp_norm * 100
             
-            # Adjust for phase stability (less volatile phase = stronger signal)
+            # Adjust for phase stability
             if 'phase' in df.columns:
                 phase_volatility = df['phase'].rolling(window=5).std()
-                stability_factor = 1 - (phase_volatility / phase_volatility.max()).fillna(0.5)
+                # Use expanding max for volatility normalization too
+                max_vol = phase_volatility.expanding(min_periods=50).max().replace(0, 1)
+                
+                stability_factor = 1 - (phase_volatility / max_vol).fillna(0.5)
                 strength = strength * stability_factor
         
         return strength.fillna(50.0)
@@ -113,16 +122,6 @@ class SignalGenerator:
     def _calculate_confidence(self, df: pd.DataFrame) -> pd.Series:
         """
         Calculate confidence level for signals
-        
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame with signals and analysis
-        
-        Returns
-        -------
-        pd.Series
-            Confidence levels ('HIGH', 'MEDIUM', 'LOW')
         """
         confidence = pd.Series('MEDIUM', index=df.index)
         
@@ -133,19 +132,7 @@ class SignalGenerator:
         return confidence
     
     def get_latest_signal(self, df: pd.DataFrame) -> Dict:
-        """
-        Get the latest trading signal with details
-        
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame with signals
-        
-        Returns
-        -------
-        Dict
-            Latest signal information
-        """
+        """Get the latest trading signal with details"""
         latest_row = df.iloc[-1]
         
         signal_info = {
@@ -161,20 +148,13 @@ class SignalGenerator:
             'timestamp': datetime.now().isoformat()
         }
         
-        # Store in history
         self.signal_history.append(signal_info)
         self.last_signal = signal_info
         
         return signal_info
     
-    # ================================================================= #
-    #                     <<< SEZIONE MODIFICATA 2 >>>                    #
-    # ================================================================= #
     def save_signals(self, df: pd.DataFrame) -> str:
-        """
-        Save signals to CSV and latest signal to JSON inside the data_path directory.
-        """
-        # Costruiamo il percorso completo partendo da self.data_path
+        """Save signals to CSV and latest signal to JSON inside the data_path directory."""
         csv_filepath = os.path.join(self.data_path, 'signals.csv')
         
         columns_to_save = [
@@ -196,9 +176,7 @@ class SignalGenerator:
         return csv_filepath
 
     def load_signals(self) -> pd.DataFrame:
-        """
-        Load signals from CSV file inside the data_path directory.
-        """
+        """Load signals from CSV file inside the data_path directory."""
         filepath = os.path.join(self.data_path, 'signals.csv')
         
         if not os.path.exists(filepath):
@@ -207,32 +185,11 @@ class SignalGenerator:
         df = pd.read_csv(filepath, index_col='date', parse_dates=True)
         print(f"📂 Loaded signals from {filepath}")
         return df
-    # ================================================================= #
+
     def generate_alert_message(self, signal_info: Dict) -> str:
-        """
-        Generate a formatted alert message for notifications
-        
-        Parameters
-        ----------
-        signal_info : Dict
-            Signal information dictionary
-        
-        Returns
-        -------
-        str
-            Formatted alert message
-        """
-        emoji_map = {
-            'BUY': '🟢',
-            'SELL': '🔴',
-            'HOLD': '⏸️'
-        }
-        
-        confidence_emoji = {
-            'HIGH': '⭐⭐⭐',
-            'MEDIUM': '⭐⭐',
-            'LOW': '⭐'
-        }
+        """Generate a formatted alert message for notifications"""
+        emoji_map = {'BUY': '🟢', 'SELL': '🔴', 'HOLD': '⏸️'}
+        confidence_emoji = {'HIGH': '⭐⭐⭐', 'MEDIUM': '⭐⭐', 'LOW': '⭐'}
         
         message = f"""
 {emoji_map.get(signal_info['signal'], '❓')} **SIGNAL ALERT - {Config.TICKER}**
