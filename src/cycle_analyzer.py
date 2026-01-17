@@ -1,6 +1,6 @@
 """
 Cycle analysis module for Kriterion Quant Trading System
-Implements causal cycle analysis using Hilbert Transform
+Implements CAUSAL cycle analysis using Hilbert Transform (Expanding Window)
 """
 
 import pandas as pd
@@ -55,7 +55,11 @@ class CycleAnalyzer:
     
     def apply_hilbert_transform(self, oscillator: pd.Series) -> Tuple[pd.Series, pd.Series]:
         """
-        Apply Hilbert Transform to extract phase and amplitude
+        Apply Hilbert Transform to extract phase and amplitude in a CAUSAL manner.
+        
+        CRITICAL UPDATE: This method uses an EXPANDING WINDOW approach to calculate 
+        the analytic signal. This eliminates Look-Ahead Bias (Repainting) which 
+        occurs when applying FFT-based Hilbert transform on the entire dataset at once.
         
         Parameters
         ----------
@@ -65,24 +69,56 @@ class CycleAnalyzer:
         Returns
         -------
         Tuple[pd.Series, pd.Series]
-            Phase and amplitude series
+            Phase and amplitude series (Causal)
         """
-        # Remove NaN values for Hilbert transform
+        # Remove NaN values for Hilbert transform calculation
         clean_oscillator = oscillator.dropna()
         
-        if len(clean_oscillator) < 10:
+        if len(clean_oscillator) < 50:
             raise ValueError("Not enough data points for Hilbert transform")
         
-        # Calculate analytic signal
-        analytic_signal = hilbert(clean_oscillator.values)
+        values = clean_oscillator.values
+        index = clean_oscillator.index
         
-        # Extract phase and amplitude
-        phase = np.angle(analytic_signal)
-        amplitude = np.abs(analytic_signal)
+        # Prepare arrays for causal results (filled with NaN initially)
+        causal_phase = np.full(len(values), np.nan)
+        causal_amplitude = np.full(len(values), np.nan)
         
-        # Convert back to series with original index
-        phase_series = pd.Series(phase, index=clean_oscillator.index, name='phase')
-        amplitude_series = pd.Series(amplitude, index=clean_oscillator.index, name='amplitude')
+        # Minimum window to start calculating transforms
+        min_window = 50
+        
+        print(f"⏳ Computing Causal Hilbert Transform (Expanding Window) on {len(values)} points...")
+        print("   Note: This prevents repainting but may take longer than standard analysis.")
+        
+        # --- EXPANDING WINDOW LOOP ---
+        # Simulates real-time data arrival day by day
+        for i in range(min_window, len(values)):
+            # Window: from start of data up to current point i
+            # This represents "all data available up to today"
+            current_slice = values[:i+1]
+            
+            # Apply Hilbert Transform on available history
+            analytic = hilbert(current_slice)
+            
+            # Extract metrics ONLY for the last point (the current simulated "today")
+            # We discard the rest of the analytic signal for this step because 
+            # past values in 'analytic' would have changed based on new data (repainting).
+            last_analytic = analytic[-1]
+            
+            causal_phase[i] = np.angle(last_analytic)
+            causal_amplitude[i] = np.abs(last_analytic)
+            
+            # Progress indicator for large datasets
+            if i % 500 == 0 and i > 0:
+                print(f"   Processed {i}/{len(values)} points")
+        
+        # Convert back to series with original index of the clean data
+        phase_series = pd.Series(causal_phase, index=index, name='phase')
+        amplitude_series = pd.Series(causal_amplitude, index=index, name='amplitude')
+        
+        # Realign with the original input oscillator index (handling initial NaNs from MAs)
+        phase_series = phase_series.reindex(oscillator.index)
+        amplitude_series = amplitude_series.reindex(oscillator.index)
         
         return phase_series, amplitude_series
     
@@ -130,7 +166,7 @@ class CycleAnalyzer:
         oscillator = self.create_causal_oscillator(result_df['close'])
         result_df['oscillator'] = oscillator
         
-        # Step 2: Apply Hilbert Transform
+        # Step 2: Apply Hilbert Transform (Now Causal)
         phase, amplitude = self.apply_hilbert_transform(oscillator)
         result_df['phase'] = phase
         result_df['amplitude'] = amplitude
@@ -141,7 +177,7 @@ class CycleAnalyzer:
         # Step 4: Determine if in bullish regime
         result_df['bullish_regime'] = result_df['phase_quadrant'].isin(Config.BULLISH_QUADRANTS)
         
-        # Remove rows with NaN values from moving averages
+        # Remove rows with NaN values (resulting from MAs and Hilbert warmup)
         result_df.dropna(inplace=True)
         
         print(f"✅ Cycle analysis complete. Analyzed {len(result_df)} data points")
