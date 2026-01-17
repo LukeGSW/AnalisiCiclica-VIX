@@ -652,9 +652,12 @@ def create_price_chart(df):
     fig.update_xaxes(
         title_text="Date", 
         row=3, col=1,
-        gridcolor=COLORS['chart_grid'],
+        gridcolor='#334155',
         showgrid=True,
-        zeroline=False
+        zeroline=False,
+        title_font=dict(color="#94a3b8"),
+        tickfont=dict(color="#94a3b8")
+)
     )
     fig.update_yaxes(
         title_text="Price ($)", 
