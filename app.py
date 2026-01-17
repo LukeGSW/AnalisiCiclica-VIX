@@ -627,26 +627,26 @@ def create_price_chart(df):
     
     # Update layout with professional styling
     fig.update_layout(
-        height=750,
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor=COLORS['chart_grid'],
-            borderwidth=1,
-            font=dict(size=11)
-        ),
-        hovermode='x unified',
-        template='plotly_white',
-        margin=dict(l=60, r=40, t=80, b=40),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(248,250,252,0.5)',
-        font=dict(family="Inter, sans-serif", color=COLORS['text_primary'])
-    )
+    height=750,
+    showlegend=True,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1,
+        bgcolor="rgba(30,41,59,0.95)",
+        bordercolor="#334155",
+        borderwidth=1,
+        font=dict(size=11, color="#e2e8f0")
+    ),
+    hovermode='x unified',
+    template='plotly_dark',
+    margin=dict(l=60, r=40, t=80, b=40),
+    paper_bgcolor='#0f172a',
+    plot_bgcolor='#1e293b',
+    font=dict(family="Inter, sans-serif", color="#e2e8f0")
+)
     
     # Update axes styling
     fig.update_xaxes(
