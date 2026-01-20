@@ -4,7 +4,7 @@ import pandas as pd
 import yfinance as yf
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta # Aggiunto timedelta
 
 from config import Config
 
@@ -24,7 +24,7 @@ class DataFetcher:
         """
         Fetches historical OHLC data from Yahoo Finance using a robust method.
         """
-        print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance...")
+        print(f"📡 Attempting to fetch '{ticker}' from Yahoo Finance ({start} -> {end})...")
         retries = 0
         while retries < max_retries:
             try:
@@ -32,16 +32,29 @@ class DataFetcher:
                 asset = yf.Ticker(ticker)
                 df = asset.history(start=start, end=end, auto_adjust=True)
                 
+                # FIX: Se il dataframe è vuoto, non è necessariamente un errore critico (es. vacanza)
+                # Restituiamo vuoto e lasciamo gestire al chiamante, oppure solleviamo errore solo se retries finiti
                 if df.empty:
-                    raise ValueError("No data returned from Yahoo Finance")
+                    print(f"⚠️ Warning: No data returned for range {start} to {end}. Market might be closed.")
+                    # Non solleviamo subito ValueError, lasciamo riprovare o uscire
+                    if retries == max_retries - 1:
+                         return pd.DataFrame() 
+                    else:
+                         raise ValueError("Empty DataFrame received")
                 
                 # Clean column names
                 df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
                 
                 # Ensure all required columns are present
                 required_cols = ['open', 'high', 'low', 'close', 'volume']
-                if not all(col in df.columns for col in required_cols):
-                    raise ValueError(f"Data for {ticker} is missing required columns.")
+                # Alcuni indici come il VIX potrebbero non avere volume, gestiamo l'eccezione se necessario
+                # Per ora manteniamo il check ma logghiamo warning invece di crashare se manca volume
+                missing_cols = [col for col in required_cols if col not in df.columns]
+                if missing_cols:
+                     if 'volume' in missing_cols and ticker == '^VIX':
+                         df['volume'] = 0 # Fix specifico per VIX che a volte non ha volume
+                     else:
+                        raise ValueError(f"Data for {ticker} is missing columns: {missing_cols}")
                 
                 print(f"✅ Successfully fetched {len(df)} rows for '{ticker}'.")
                 return df[required_cols].dropna()
@@ -50,7 +63,9 @@ class DataFetcher:
                 retries += 1
                 print(f"❌ Failed to fetch '{ticker}' (Attempt {retries}/{max_retries}): {e}")
                 if retries >= max_retries:
-                    raise Exception(f"Could not fetch data for '{ticker}' after {max_retries} attempts.")
+                    # Invece di crashare tutto, restituiamo DataFrame vuoto se fallisce
+                    print(f"⚠️ Skipping update for now due to fetch errors.")
+                    return pd.DataFrame()
                 time.sleep(retries * 2)
         
         return pd.DataFrame()
@@ -77,30 +92,50 @@ class DataFetcher:
         try:
             existing_df = self.load_data()
             last_date = existing_df.index[-1]
+            
+            # Start date: giorno dopo l'ultimo dato
             start_update_date = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            # FIX PRINCIPALE: End date deve includere oggi, quindi mettiamo domani
+            # yfinance 'end' is exclusive
+            end_update_date = (datetime.now() + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+
             print(f"📅 Last data point is {last_date.strftime('%Y-%m-%d')}. Fetching new data...")
             
+            # Controllo preventivo: Se la start date è nel futuro (o oggi e mercato non ancora chiuso), attenzione
+            if start_update_date >= end_update_date:
+                print("✅ Data is already up to date.")
+                return existing_df
+
             new_df = self.fetch_historical_data(
                 ticker=ticker,
                 start=start_update_date,
-                end=datetime.now().strftime('%Y-%m-%d')
+                end=end_update_date
             )
             
             if not new_df.empty:
+                # Rimuove duplicati basandosi sull'indice
                 combined_df = pd.concat([existing_df, new_df])
                 combined_df = combined_df[~combined_df.index.duplicated(keep='last')]
                 self.save_data(combined_df)
                 return combined_df
             else:
-                print("✅ No new data to update.")
+                print("✅ No new data found (Market likely closed or holiday). Using existing data.")
                 return existing_df
 
         except FileNotFoundError:
             print("📥 No existing data found. Fetching full history...")
+            
+            # Anche qui applichiamo la logica dell'end date inclusiva
+            end_date = (datetime.now() + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            
             full_df = self.fetch_historical_data(
                 ticker=ticker,
                 start=Config.START_DATE,
-                end=Config.END_DATE
+                end=end_date 
             )
-            self.save_data(full_df)
-            return full_df
+            if not full_df.empty:
+                self.save_data(full_df)
+                return full_df
+            else:
+                raise ValueError("Could not fetch initial historical data.")
