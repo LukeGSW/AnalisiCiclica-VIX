@@ -1,12 +1,12 @@
 {
-  "date": "2026-02-25",
+  "date": "2026-02-26",
   "signal": "HOLD",
   "position": "FLAT",
   "phase_quadrant": "Quadrante 3 (Picco -> Discesa)",
-  "phase_value": 0.5185544653542953,
-  "oscillator_value": 2.63775014877319,
-  "signal_strength": 5.869722740617145,
+  "phase_value": 0.5874844218290299,
+  "oscillator_value": 2.3112501144409165,
+  "signal_strength": 5.303280040126433,
   "confidence": "LOW",
-  "price": 17.93000030517578,
-  "timestamp": "2026-02-25T21:55:16.848243"
+  "price": 18.6299991607666,
+  "timestamp": "2026-02-26T21:52:04.987972"
 }
