@@ -1,25 +1,25 @@
 {
-  "timestamp": "2026-05-13T22:42:48.995202",
+  "timestamp": "2026-05-14T22:35:45.115853",
   "ticker": "^VIX",
-  "data_points": 5120,
+  "data_points": 5121,
   "latest_signal": {
-    "date": "2026-05-13",
+    "date": "2026-05-14",
     "signal": "HOLD",
     "position": "LONG",
     "phase_quadrant": "Quadrante 1 (Minimo -> Salita)",
-    "phase_value": -2.1287033910843043,
-    "oscillator_value": -3.538000202178953,
-    "signal_strength": 13.153665295090848,
+    "phase_value": -2.096871302434708,
+    "oscillator_value": -3.305250120162963,
+    "signal_strength": 12.962830188694882,
     "confidence": "LOW",
-    "price": 17.8700008392334,
-    "timestamp": "2026-05-13T22:42:47.524480"
+    "price": 17.260000228881836,
+    "timestamp": "2026-05-14T22:35:43.282799"
   },
   "backtest_metrics": {
-    "total_return_%": 419.55562237065135,
+    "total_return_%": 416.2002835361526,
     "max_drawdown_%": 47.6587401268174,
-    "sharpe_ratio": 0.7149533448209001,
-    "sortino_ratio": 1.1343496339456136,
-    "calmar_ratio": 0.9683937937530118,
+    "sharpe_ratio": 0.7130704321876525,
+    "sortino_ratio": 1.1316212618713388,
+    "calmar_ratio": 0.9655420237078066,
     "total_trades": 21,
     "win_rate_%": 76.19047619047619,
     "profit_factor": 8.052552311601497
