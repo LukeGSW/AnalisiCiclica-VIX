@@ -1,12 +1,12 @@
 {
-  "date": "2026-06-11",
+  "date": "2026-06-12",
   "signal": "HOLD",
   "position": "LONG",
   "phase_quadrant": "Quadrante 2 (Salita -> Picco)",
-  "phase_value": -1.4763569710347935,
-  "oscillator_value": 0.2669999599456787,
-  "signal_strength": 5.271638962478619,
+  "phase_value": -1.3732312777881799,
+  "oscillator_value": 0.4980000019073465,
+  "signal_strength": 4.6674117092410885,
   "confidence": "LOW",
-  "price": 19.440000534057617,
-  "timestamp": "2026-06-11T23:02:52.784691"
+  "price": 17.68000030517578,
+  "timestamp": "2026-06-12T22:53:57.622047"
 }
